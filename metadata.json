@@ -1,0 +1,5 @@
+{
+  "name": "DCG Dental CE Platform",
+  "description": "A simple, functional platform for finding and sharing dental continuing education courses, built with Next.js 14 and Supabase.",
+  "requestFramePermissions": []
+}

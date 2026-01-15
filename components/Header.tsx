@@ -41,7 +41,7 @@ const Header: React.FC = () => {
             DCG Dental CE
           </Link>
           <nav className="flex gap-6 items-center">
-            <Link href="/" className="text-gray-700 hover:text-blue-700 text-sm font-medium">
+            <Link href="/classes" className="text-gray-700 hover:text-blue-700 text-sm font-medium">
               Browse Classes
             </Link>
           </nav>
@@ -58,7 +58,7 @@ const Header: React.FC = () => {
         </Link>
         
         <nav className="flex gap-6 items-center">
-          <Link href="/" className="text-gray-700 hover:text-blue-700 text-sm font-medium">
+          <Link href="/classes" className="text-gray-700 hover:text-blue-700 text-sm font-medium">
             Browse Classes
           </Link>
           

@@ -97,7 +97,23 @@ export default async function ClassesPage({ searchParams }: PageProps) {
 
   // Apply search filter to count query
   if (searchQuery) {
-    countQuery = countQuery.or(`title.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%,instructor_name.ilike.%${searchQuery}%`);
+    // countQuery = countQuery.or(`title.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%,instructor_name.ilike.%${searchQuery}%`);
+    // countQuery = countQuery.or(`title.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%,instructor_name.ilike.%${searchQuery}%,title.fts.${searchQuery},description.fts.${searchQuery}`);
+    
+      // Search with partial matching - trims to word stem for better results
+    const searchTerm = searchQuery.toLowerCase().trim();
+    // Remove common suffixes for stem matching (e.g., "dental" matches "dentistry")
+    const stemmedSearch = searchTerm
+      .replace(/ing$/, '')
+      .replace(/istry$/, '')
+      .replace(/ist$/, '')
+      .replace(/tion$/, '')
+      .replace(/al$/, '');
+    
+    // Use the shorter of original or stemmed (minimum 3 chars)
+    const effectiveSearch = stemmedSearch.length >= 3 ? stemmedSearch : searchTerm;
+    
+    countQuery = countQuery.or(`title.ilike.%${effectiveSearch}%,description.ilike.%${effectiveSearch}%,instructor_name.ilike.%${searchQuery}%`);
   }
 
   // Apply city filter to count query
@@ -134,7 +150,22 @@ export default async function ClassesPage({ searchParams }: PageProps) {
 
   // Apply search filter to main query
   if (searchQuery) {
-    mainQuery = mainQuery.or(`title.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%,instructor_name.ilike.%${searchQuery}%`);
+    // mainQuery = mainQuery.or(`title.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%,instructor_name.ilike.%${searchQuery}%`);
+  
+    // Search with partial matching - trims to word stem for better results
+    const searchTerm = searchQuery.toLowerCase().trim();
+    // Remove common suffixes for stem matching (e.g., "dental" matches "dentistry")
+    const stemmedSearch = searchTerm
+      .replace(/ing$/, '')
+      .replace(/istry$/, '')
+      .replace(/ist$/, '')
+      .replace(/tion$/, '')
+      .replace(/al$/, '');
+    
+    // Use the shorter of original or stemmed (minimum 3 chars)
+    const effectiveSearch = stemmedSearch.length >= 3 ? stemmedSearch : searchTerm;
+    
+    mainQuery = mainQuery.or(`title.ilike.%${effectiveSearch}%,description.ilike.%${effectiveSearch}%,instructor_name.ilike.%${searchQuery}%`);
   }
 
   // Apply city filter to main query

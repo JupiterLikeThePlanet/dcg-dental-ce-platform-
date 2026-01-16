@@ -3,6 +3,7 @@ import { createServerClient } from '@supabase/ssr';
 import ClassGrid from '@/components/classes/ClassGrid';
 import SortControls from '@/components/classes/SortControls';
 import Pagination from '@/components/classes/Pagination';
+import FilterBar from '@/components/classes/FilterBar';
 
 // Force dynamic rendering (no caching) so we always get fresh data
 export const dynamic = 'force-dynamic';
@@ -30,10 +31,13 @@ export default async function ClassesPage({ searchParams }: PageProps) {
   // In Next.js 14+, searchParams is a Promise
   const params = await searchParams;
   
-  // Parse sort parameters with defaults
+  // Parse all URL parameters with defaults
   const sortParam = (params.sort as SortOption) || 'date';
   const dirParam = (params.dir as SortDirection) || 'asc';
   const pageParam = params.page as string || '1';
+  const searchQuery = (params.search as string) || '';
+  const cityFilter = (params.city as string) || '';
+  const categoryFilter = (params.category as string) || '';
   
   // Validate sort option
   const validSort: SortOption = ['date', 'instructor', 'price', 'location'].includes(sortParam) 
@@ -63,12 +67,50 @@ export default async function ClassesPage({ searchParams }: PageProps) {
     }
   );
 
-  // First, get total count for pagination
-  const { count: totalCount, error: countError } = await supabase
+  // Fetch all unique cities for the filter dropdown
+  const { data: citiesData } = await supabase
+    .from('classes')
+    .select('city')
+    .eq('status', 'approved')
+    .is('deleted_at', null);
+  
+  // Extract unique cities and sort alphabetically
+  const availableCities = [...new Set(citiesData?.map(c => c.city) || [])].sort();
+
+  // Fetch all unique categories for the filter dropdown
+  const { data: categoriesData } = await supabase
+    .from('classes')
+    .select('category')
+    .eq('status', 'approved')
+    .is('deleted_at', null)
+    .not('category', 'is', null);
+  
+  // Extract unique categories and sort alphabetically
+  const availableCategories = [...new Set(categoriesData?.map(c => c.category).filter(Boolean) || [])].sort() as string[];
+
+  // Build the base query for counting
+  let countQuery = supabase
     .from('classes')
     .select('*', { count: 'exact', head: true })
     .eq('status', 'approved')
     .is('deleted_at', null);
+
+  // Apply search filter to count query
+  if (searchQuery) {
+    countQuery = countQuery.or(`title.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%,instructor_name.ilike.%${searchQuery}%`);
+  }
+
+  // Apply city filter to count query
+  if (cityFilter) {
+    countQuery = countQuery.eq('city', cityFilter);
+  }
+
+  // Apply category filter to count query
+  if (categoryFilter) {
+    countQuery = countQuery.eq('category', categoryFilter);
+  }
+
+  const { count: totalCount, error: countError } = await countQuery;
 
   if (countError) {
     console.error('Error fetching count:', countError);
@@ -83,12 +125,30 @@ export default async function ClassesPage({ searchParams }: PageProps) {
   // Calculate offset for pagination
   const offset = (validPage - 1) * ITEMS_PER_PAGE;
 
-  // Fetch paginated classes with sorting
-  const { data: classes, error } = await supabase
+  // Build the main query
+  let mainQuery = supabase
     .from('classes')
     .select('*')
     .eq('status', 'approved')
-    .is('deleted_at', null)
+    .is('deleted_at', null);
+
+  // Apply search filter to main query
+  if (searchQuery) {
+    mainQuery = mainQuery.or(`title.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%,instructor_name.ilike.%${searchQuery}%`);
+  }
+
+  // Apply city filter to main query
+  if (cityFilter) {
+    mainQuery = mainQuery.eq('city', cityFilter);
+  }
+
+  // Apply category filter to main query
+  if (categoryFilter) {
+    mainQuery = mainQuery.eq('category', categoryFilter);
+  }
+
+  // Apply sorting and pagination
+  const { data: classes, error } = await mainQuery
     .order(sortColumn, { ascending: validDirection === 'asc' })
     .range(offset, offset + ITEMS_PER_PAGE - 1);
 
@@ -121,8 +181,18 @@ export default async function ClassesPage({ searchParams }: PageProps) {
         </h1>
         <p className="text-gray-600">
           {totalItems} {totalItems === 1 ? 'class' : 'classes'} available
+          {(searchQuery || cityFilter || categoryFilter) && ' (filtered)'}
         </p>
       </div>
+
+      {/* Search and Filter Bar */}
+      <FilterBar 
+        currentSearch={searchQuery}
+        currentCity={cityFilter}
+        currentCategory={categoryFilter}
+        availableCities={availableCities}
+        availableCategories={availableCategories}
+      />
 
       {/* Sort Controls */}
       <SortControls currentSort={validSort} currentDirection={validDirection} />

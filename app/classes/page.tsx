@@ -2,9 +2,13 @@ import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import ClassGrid from '@/components/classes/ClassGrid';
 import SortControls from '@/components/classes/SortControls';
+import Pagination from '@/components/classes/Pagination';
 
 // Force dynamic rendering (no caching) so we always get fresh data
 export const dynamic = 'force-dynamic';
+
+// Pagination settings
+const ITEMS_PER_PAGE = 20;
 
 // Define valid sort options
 type SortOption = 'date' | 'instructor' | 'price' | 'location';
@@ -29,6 +33,7 @@ export default async function ClassesPage({ searchParams }: PageProps) {
   // Parse sort parameters with defaults
   const sortParam = (params.sort as SortOption) || 'date';
   const dirParam = (params.dir as SortDirection) || 'asc';
+  const pageParam = params.page as string || '1';
   
   // Validate sort option
   const validSort: SortOption = ['date', 'instructor', 'price', 'location'].includes(sortParam) 
@@ -37,6 +42,9 @@ export default async function ClassesPage({ searchParams }: PageProps) {
   const validDirection: SortDirection = ['asc', 'desc'].includes(dirParam) 
     ? dirParam 
     : 'asc';
+  
+  // Validate page number
+  const currentPage = Math.max(1, parseInt(pageParam, 10) || 1);
   
   // Get the database column name
   const sortColumn = sortColumnMap[validSort];
@@ -55,13 +63,34 @@ export default async function ClassesPage({ searchParams }: PageProps) {
     }
   );
 
-  // Fetch all approved classes with sorting
+  // First, get total count for pagination
+  const { count: totalCount, error: countError } = await supabase
+    .from('classes')
+    .select('*', { count: 'exact', head: true })
+    .eq('status', 'approved')
+    .is('deleted_at', null);
+
+  if (countError) {
+    console.error('Error fetching count:', countError);
+  }
+
+  const totalItems = totalCount || 0;
+  const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+  
+  // Ensure current page is within bounds
+  const validPage = Math.min(currentPage, Math.max(1, totalPages));
+  
+  // Calculate offset for pagination
+  const offset = (validPage - 1) * ITEMS_PER_PAGE;
+
+  // Fetch paginated classes with sorting
   const { data: classes, error } = await supabase
     .from('classes')
     .select('*')
     .eq('status', 'approved')
     .is('deleted_at', null)
-    .order(sortColumn, { ascending: validDirection === 'asc' });
+    .order(sortColumn, { ascending: validDirection === 'asc' })
+    .range(offset, offset + ITEMS_PER_PAGE - 1);
 
   // Handle error state
   if (error) {
@@ -83,8 +112,6 @@ export default async function ClassesPage({ searchParams }: PageProps) {
     );
   }
 
-  const classCount = classes?.length || 0;
-
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       {/* Page Header */}
@@ -93,7 +120,7 @@ export default async function ClassesPage({ searchParams }: PageProps) {
           Browse Dental CE Classes
         </h1>
         <p className="text-gray-600">
-          {classCount} {classCount === 1 ? 'class' : 'classes'} available
+          {totalItems} {totalItems === 1 ? 'class' : 'classes'} available
         </p>
       </div>
 
@@ -102,6 +129,14 @@ export default async function ClassesPage({ searchParams }: PageProps) {
 
       {/* Class Grid */}
       <ClassGrid classes={classes || []} />
+
+      {/* Pagination */}
+      <Pagination 
+        currentPage={validPage}
+        totalPages={totalPages}
+        totalItems={totalItems}
+        itemsPerPage={ITEMS_PER_PAGE}
+      />
     </div>
   );
 }

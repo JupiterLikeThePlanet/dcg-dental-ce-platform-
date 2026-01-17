@@ -61,6 +61,10 @@ const Header: React.FC = () => {
           <Link href="/classes" className="text-gray-700 hover:text-blue-700 text-sm font-medium">
             Browse Classes
           </Link>
+
+          <Link href="/submit" className="text-gray-700 hover:text-blue-700 text-sm font-medium">
+            Submit Class
+          </Link>
           
           {user ? (
             <div className="flex items-center gap-4">

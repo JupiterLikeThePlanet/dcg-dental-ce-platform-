@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
+import Spinner from '@/components/ui/Spinner';
 
 interface SubmitClassFormProps {
   userId: string;
@@ -106,6 +107,8 @@ export default function SubmitClassForm({ userId, userEmail }: SubmitClassFormPr
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
+  const [isNavigating, setIsNavigating] = useState(false);
+
   
   const totalSteps = 4;
 
@@ -181,14 +184,21 @@ export default function SubmitClassForm({ userId, userEmail }: SubmitClassFormPr
 
   const handleNext = () => {
     if (validateStep(currentStep)) {
-      setCurrentStep(prev => Math.min(prev + 1, totalSteps));
+      setIsNavigating(true);
+      setTimeout(() => {
+        setCurrentStep(prev => Math.min(prev + 1, totalSteps));
+        setIsNavigating(false);
+      }, 300);
     }
   };
 
   const handleBack = () => {
-    setCurrentStep(prev => Math.max(prev - 1, 1));
+    setIsNavigating(true);
+    setTimeout(() => {
+      setCurrentStep(prev => Math.max(prev - 1, 1));
+      setIsNavigating(false);
+    }, 300);
   };
-
 const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
   
@@ -779,13 +789,14 @@ const handleSubmit = async (e: React.FormEvent) => {
       )}
 
       {/* Navigation Buttons */}
+
       <div className="flex justify-between">
         <button
           type="button"
           onClick={handleBack}
-          disabled={currentStep === 1}
-          className={`px-6 py-2 rounded-sm font-medium ${
-            currentStep === 1
+          disabled={currentStep === 1 || isNavigating || isSubmitting}
+          className={`px-6 py-2 rounded-sm font-medium flex items-center gap-2 ${
+            currentStep === 1 || isNavigating || isSubmitting
               ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
               : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
           }`}
@@ -797,21 +808,40 @@ const handleSubmit = async (e: React.FormEvent) => {
           <button
             type="button"
             onClick={handleNext}
-            className="px-6 py-2 bg-blue-600 text-white font-medium rounded-sm hover:bg-blue-700"
+            disabled={isNavigating}
+            className={`px-6 py-2 rounded-sm font-medium flex items-center gap-2 ${
+              isNavigating
+                ? 'bg-blue-400 cursor-not-allowed'
+                : 'bg-blue-600 hover:bg-blue-700'
+            } text-white`}
           >
-            Next →
+            {isNavigating ? (
+              <>
+                <Spinner size="sm" />
+                Loading...
+              </>
+            ) : (
+              'Next →'
+            )}
           </button>
         ) : (
           <button
             type="submit"
-            disabled={isSubmitting}
-            className={`px-6 py-2 font-medium rounded-sm ${
-              isSubmitting
-                ? 'bg-gray-400 text-white cursor-not-allowed'
-                : 'bg-green-600 text-white hover:bg-green-700'
-            }`}
+            disabled={isSubmitting || isNavigating}
+            className={`px-6 py-2 font-medium rounded-sm flex items-center gap-2 ${
+              isSubmitting || isNavigating
+                ? 'bg-green-400 cursor-not-allowed'
+                : 'bg-green-600 hover:bg-green-700'
+            } text-white`}
           >
-            {isSubmitting ? 'Submitting...' : 'Submit for Review'}
+            {isSubmitting ? (
+              <>
+                <Spinner size="sm" />
+                Submitting...
+              </>
+            ) : (
+              'Submit for Review'
+            )}
           </button>
         )}
       </div>

@@ -22,11 +22,13 @@ const HomePage: React.FC = () => {
           >
             Get Started Free
           </Link>
-          <button 
+          <Link
+            to="/classes"
             className="px-8 py-4 bg-white border-2 border-gray-200 text-gray-700 font-bold rounded-lg hover:border-gray-300 transition-all text-lg"
           >
             Browse Listings
-          </button>
+          </Link>
+          
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12">

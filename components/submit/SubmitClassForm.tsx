@@ -187,64 +187,76 @@ export default function SubmitClassForm({ userId, userEmail }: SubmitClassFormPr
     setCurrentStep(prev => Math.max(prev - 1, 1));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!validateStep(currentStep)) return;
-    
-    setIsSubmitting(true);
-    setSubmitError(null);
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  
+  if (!validateStep(currentStep)) return;
+  
+  setIsSubmitting(true);
+  setSubmitError(null);
 
-    try {
-      // Prepare submission data
-      const submissionData = {
-        title: formData.title.trim(),
-        description: formData.description.trim(),
-        category: formData.category,
-        start_date: formData.start_date,
-        end_date: formData.end_date || null,
-        start_time: formData.start_time,
-        end_time: formData.end_time,
-        address_line1: formData.address_line1.trim(),
-        address_line2: formData.address_line2.trim() || null,
-        city: formData.city.trim(),
-        state: formData.state,
-        zip_code: formData.zip_code.trim(),
-        instructor_name: formData.instructor_name.trim(),
-        provider_name: formData.provider_name.trim(),
-        contact_email: formData.contact_email.trim() || null,
-        contact_phone: formData.contact_phone.trim() || null,
-        price: parseFloat(formData.price),
-        ce_credits: formData.ce_credits ? parseInt(formData.ce_credits) : null,
-        registration_url: formData.registration_url.trim(),
-        image_url: formData.image_url.trim() || 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=800',
-        submitted_by: userId,
-        status: 'pending',
-      };
+  try {
+    // Prepare submission data
+    const submissionData = {
+      title: formData.title.trim(),
+      description: formData.description.trim(),
+      category: formData.category,
+      start_date: formData.start_date,
+      end_date: formData.end_date || null,
+      start_time: formData.start_time,
+      end_time: formData.end_time,
+      address_line1: formData.address_line1.trim(),
+      address_line2: formData.address_line2.trim() || null,
+      city: formData.city.trim(),
+      state: formData.state,
+      zip_code: formData.zip_code.trim(),
+      instructor_name: formData.instructor_name.trim(),
+      provider_name: formData.provider_name.trim(),
+      contact_email: formData.contact_email.trim() || null,
+      contact_phone: formData.contact_phone.trim() || null,
+      price: parseFloat(formData.price),
+      ce_credits: formData.ce_credits ? parseInt(formData.ce_credits) : null,
+      registration_url: formData.registration_url.trim(),
+      image_url: formData.image_url.trim() || 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=800',
+    };
 
-      // Insert into submissions table
-      const { error } = await supabase
-        .from('submissions')
-        .insert([submissionData]);
+    // Call our checkout API
+    const response = await fetch('/api/checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ submissionData }),
+    });
 
-      if (error) throw error;
+    const data = await response.json();
 
-      // Redirect to success page
-      router.push('/submit/success');
-      
-    } catch (error: unknown) {
-      console.error('Submission error:', error);
-      if (error instanceof Error) {
-        setSubmitError(`Failed to submit: ${error.message}`);
-      } else if (typeof error === 'object' && error !== null && 'message' in error) {
-        setSubmitError(`Failed to submit: ${(error as { message: string }).message}`);
-      } else {
-        setSubmitError('Failed to submit. Please try again.');
-      }
-    } finally {
-      setIsSubmitting(false);
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to process submission');
     }
-  };
+
+    // If admin, redirect directly to success
+    if (data.isAdmin) {
+      router.push('/submit/success');
+      return;
+    }
+
+    // For regular users, redirect to Stripe Checkout
+    if (data.url) {
+      window.location.href = data.url;
+    } else {
+      throw new Error('No checkout URL returned');
+    }
+
+  } catch (error: unknown) {
+    console.error('Submission error:', error);
+    if (error instanceof Error) {
+      setSubmitError(`Failed to submit: ${error.message}`);
+    } else {
+      setSubmitError('Failed to submit. Please try again.');
+    }
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   const renderStepIndicator = () => (
     <div className="mb-8">

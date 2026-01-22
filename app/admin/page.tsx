@@ -39,7 +39,7 @@ export default async function AdminPage({ searchParams }: PageProps) {
   // Check if user is admin
   const { data: userData } = await supabase
     .from('users')
-    .select('is_admin')
+    .select('is_admin, full_name')
     .eq('id', user.id)
     .single();
 
@@ -106,25 +106,131 @@ export default async function AdminPage({ searchParams }: PageProps) {
     { key: 'all', label: 'All', count: totalCount || 0 },
   ];
 
+  // Stat cards configuration with colors and icons
+  const statCards = [
+    { 
+      key: 'pending', 
+      label: 'Pending Review', 
+      count: pendingCount || 0,
+      bgColor: 'bg-blue-50 hover:bg-blue-100',
+      borderColor: 'border-blue-200',
+      textColor: 'text-blue-600',
+      numberColor: 'text-blue-700',
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+        </svg>
+      ),
+    },
+    { 
+      key: 'approved', 
+      label: 'Approved', 
+      count: approvedCount || 0,
+      bgColor: 'bg-green-50 hover:bg-green-100',
+      borderColor: 'border-green-200',
+      textColor: 'text-green-600',
+      numberColor: 'text-green-700',
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+        </svg>
+      ),
+    },
+    { 
+      key: 'rejected', 
+      label: 'Rejected', 
+      count: rejectedCount || 0,
+      bgColor: 'bg-red-50 hover:bg-red-100',
+      borderColor: 'border-red-200',
+      textColor: 'text-red-600',
+      numberColor: 'text-red-700',
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+        </svg>
+      ),
+    },
+    { 
+      key: 'all', 
+      label: 'Total Submissions', 
+      count: totalCount || 0,
+      bgColor: 'bg-gray-50 hover:bg-gray-100',
+      borderColor: 'border-gray-200',
+      textColor: 'text-gray-600',
+      numberColor: 'text-gray-700',
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+          <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+          <path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd" />
+        </svg>
+      ),
+    },
+  ];
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       {/* Page Header */}
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Admin Dashboard</h1>
-        <p className="text-gray-600">Manage class submissions</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+              <span className="px-2 py-1 bg-orange-100 text-orange-700 text-xs font-medium rounded">
+                Admin
+              </span>
+            </div>
+            <p className="text-gray-600">
+              Welcome back, {userData.full_name || user.email}. Manage class submissions below.
+            </p>
+          </div>
+          <Link
+            href="/dashboard"
+            className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1 transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" />
+            </svg>
+            My Dashboard
+          </Link>
+        </div>
       </div>
 
       {/* Success Messages */}
       {message === 'approved' && (
-        <div className="bg-green-50 border border-green-200 rounded-sm p-4 mb-6">
-          <p className="text-green-700">✓ Submission approved and published successfully!</p>
+        <div className="bg-green-50 border border-green-200 rounded-sm p-4 mb-6 flex items-center gap-2 animate-fade-in">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-600" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+          </svg>
+          <p className="text-green-700">Submission approved and published successfully!</p>
         </div>
       )}
       {message === 'rejected' && (
-        <div className="bg-red-50 border border-red-200 rounded-sm p-4 mb-6">
+        <div className="bg-red-50 border border-red-200 rounded-sm p-4 mb-6 flex items-center gap-2 animate-fade-in">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-red-600" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+          </svg>
           <p className="text-red-700">Submission has been rejected.</p>
         </div>
       )}
+
+      {/* Quick Stats - Clickable Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        {statCards.map((card) => (
+          <Link
+            key={card.key}
+            href={`/admin?status=${card.key}`}
+            className={`${card.bgColor} border ${card.borderColor} rounded-sm p-4 transition-all duration-200 cursor-pointer ${
+              statusFilter === card.key ? 'ring-2 ring-offset-2 ring-blue-500' : ''
+            }`}
+          >
+            <div className="flex items-center justify-between mb-1">
+              <p className={`${card.textColor} text-sm font-medium`}>{card.label}</p>
+              <span className={card.textColor}>{card.icon}</span>
+            </div>
+            <p className={`text-2xl font-bold ${card.numberColor}`}>{card.count}</p>
+          </Link>
+        ))}
+      </div>
 
       {/* Status Tabs */}
       <div className="border-b border-gray-200 mb-6">
@@ -135,7 +241,7 @@ export default async function AdminPage({ searchParams }: PageProps) {
               <Link
                 key={tab.key}
                 href={`/admin?status=${tab.key}`}
-                className={`px-4 py-3 text-sm font-medium border-b-2 -mb-px transition-colors ${
+                className={`px-4 py-3 text-sm font-medium border-b-2 -mb-px transition-all duration-200 ${
                   isActive
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -143,7 +249,7 @@ export default async function AdminPage({ searchParams }: PageProps) {
               >
                 {tab.label}
                 <span
-                  className={`ml-2 px-2 py-0.5 rounded-full text-xs ${
+                  className={`ml-2 px-2 py-0.5 rounded-full text-xs transition-colors ${
                     isActive
                       ? 'bg-blue-100 text-blue-600'
                       : 'bg-gray-100 text-gray-600'
@@ -155,26 +261,6 @@ export default async function AdminPage({ searchParams }: PageProps) {
             );
           })}
         </nav>
-      </div>
-
-      {/* Quick Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-blue-50 border border-blue-200 rounded-sm p-4">
-          <p className="text-blue-600 text-sm font-medium">Pending Review</p>
-          <p className="text-2xl font-bold text-blue-700">{pendingCount || 0}</p>
-        </div>
-        <div className="bg-green-50 border border-green-200 rounded-sm p-4">
-          <p className="text-green-600 text-sm font-medium">Approved</p>
-          <p className="text-2xl font-bold text-green-700">{approvedCount || 0}</p>
-        </div>
-        <div className="bg-red-50 border border-red-200 rounded-sm p-4">
-          <p className="text-red-600 text-sm font-medium">Rejected</p>
-          <p className="text-2xl font-bold text-red-700">{rejectedCount || 0}</p>
-        </div>
-        <div className="bg-gray-50 border border-gray-200 rounded-sm p-4">
-          <p className="text-gray-600 text-sm font-medium">Total Submissions</p>
-          <p className="text-2xl font-bold text-gray-700">{totalCount || 0}</p>
-        </div>
       </div>
 
       {/* Error State */}
@@ -189,14 +275,19 @@ export default async function AdminPage({ searchParams }: PageProps) {
         submissions={(submissions as any[]) || []}
         emptyMessage={
           statusFilter === 'pending'
-            ? 'No submissions pending review'
+            ? 'No submissions pending review. 🎉'
             : statusFilter === 'approved'
-            ? 'No approved submissions yet'
+            ? 'No approved submissions yet.'
             : statusFilter === 'rejected'
-            ? 'No rejected submissions'
-            : 'No submissions found'
+            ? 'No rejected submissions.'
+            : 'No submissions found.'
         }
       />
+
+      {/* Help Text */}
+      <p className="text-center text-gray-500 text-sm mt-6">
+        Click on any row to view full submission details and approve or reject.
+      </p>
     </div>
   );
 }

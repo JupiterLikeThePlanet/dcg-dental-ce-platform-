@@ -5,9 +5,16 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase';
 import { User } from '@supabase/supabase-js';
 
+interface UserData {
+  is_admin: boolean;
+  full_name: string | null;
+}
+
 const Header: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
+  const [userData, setUserData] = useState<UserData | null>(null);
   const [isClient, setIsClient] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const supabase = createClient();
 
   useEffect(() => {
@@ -16,20 +23,59 @@ const Header: React.FC = () => {
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
+      
+      // Fetch additional user data (is_admin, full_name)
+      if (user) {
+        const { data } = await supabase
+          .from('users')
+          .select('is_admin, full_name')
+          .eq('id', user.id)
+          .single();
+        setUserData(data);
+      }
     };
     getUser();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        const { data } = await supabase
+          .from('users')
+          .select('is_admin, full_name')
+          .eq('id', session.user.id)
+          .single();
+        setUserData(data);
+      } else {
+        setUserData(null);
+      }
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
   const handleLogout = async () => {
+    setIsLoggingOut(true);
     await supabase.auth.signOut();
     setUser(null);
+    setUserData(null);
     window.location.href = '/';
+  };
+
+  // Get initials for avatar
+  const getInitials = () => {
+    if (userData?.full_name) {
+      return userData.full_name
+        .split(' ')
+        .map(n => n[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2);
+    }
+    if (user?.email) {
+      return user.email[0].toUpperCase();
+    }
+    return '?';
   };
 
   // Don't render auth-dependent UI until client-side
@@ -58,25 +104,39 @@ const Header: React.FC = () => {
         </Link>
         
         <nav className="flex gap-6 items-center">
-          <Link href="/classes" className="text-gray-700 hover:text-blue-700 text-sm font-medium">
+          <Link href="/classes" className="text-gray-700 hover:text-blue-700 text-sm font-medium transition-colors">
             Browse Classes
           </Link>
 
-          <Link href="/submit" className="text-gray-700 hover:text-blue-700 text-sm font-medium">
+          <Link href="/submit" className="text-gray-700 hover:text-blue-700 text-sm font-medium transition-colors">
             Submit Class
           </Link>
-          
+
           {user ? (
-            <div className="flex items-center gap-4">
-              <span className="hidden md:inline text-xs text-gray-500 font-mono">{user.email}</span>
-              <Link href="/dashboard" className="text-gray-700 hover:text-blue-700 text-sm font-medium">
-                Dashboard
+            <div className="flex items-center gap-3">
+              {/* User Avatar & Info - Links to admin dash for admins, regular dash for others */}
+              <Link 
+                href={userData?.is_admin ? '/admin' : '/dashboard'}
+                className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+              >
+                <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-medium">
+                  {getInitials()}
+                </div>
+                <span className="hidden md:inline text-sm text-gray-700">
+                  {userData?.full_name || user.email?.split('@')[0]}
+                </span>
               </Link>
+              
               <button 
                 onClick={handleLogout}
-                className="px-3 py-1.5 text-sm bg-gray-100 border border-gray-300 rounded hover:bg-gray-200 transition-colors"
+                disabled={isLoggingOut}
+                className={`px-3 py-1.5 text-sm border border-gray-300 rounded transition-colors ${
+                  isLoggingOut 
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                    : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                }`}
               >
-                Logout
+                {isLoggingOut ? 'Logging out...' : 'Logout'}
               </button>
             </div>
           ) : (

@@ -7,7 +7,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 export async function POST(request: NextRequest) {
   try {
-    const { submissionData } = await request.json();
+    const { submissionData, couponCode } = await request.json();
 
     const cookieStore = await cookies();
     const supabase = createServerClient(
@@ -35,14 +35,63 @@ export async function POST(request: NextRequest) {
 
     const isAdmin = userData?.is_admin || false;
 
-    // Save submission to database first
+    // Check if coupon code is valid
+    let validCoupon = false;
+    if (couponCode) {
+      const { data: coupon } = await supabase
+        .from('coupon_codes')
+        .select('*')
+        .eq('code', couponCode)
+        .eq('is_active', true)
+        .single();
+
+      if (coupon) {
+        // Check if coupon has uses remaining
+        if (coupon.max_uses === null || coupon.current_uses < coupon.max_uses) {
+          validCoupon = true;
+          
+          // Increment current_uses
+          await supabase
+            .from('coupon_codes')
+            .update({ current_uses: coupon.current_uses + 1 })
+            .eq('id', coupon.id);
+        }
+      }
+    }
+
+    // If admin or valid coupon, save directly (no payment)
+    if (isAdmin || validCoupon) {
+      const { error: insertError } = await supabase
+        .from('submissions')
+        .insert([{
+          ...submissionData,
+          submitted_by: user.id,
+          status: 'pending',
+          payment_amount: 0,
+          coupon_code: validCoupon ? couponCode : null,
+        }]);
+
+      if (insertError) {
+        console.error('Insert error:', insertError);
+        return NextResponse.json({ error: insertError.message }, { status: 500 });
+      }
+
+      return NextResponse.json({ success: true, isAdmin: true, usedCoupon: validCoupon });
+    }
+
+    // Invalid coupon provided
+    if (couponCode && !validCoupon) {
+      return NextResponse.json({ error: 'Invalid or expired coupon code' }, { status: 400 });
+    }
+
+    // Save submission with pending_payment status
     const { data: submission, error: insertError } = await supabase
       .from('submissions')
       .insert([{
         ...submissionData,
         submitted_by: user.id,
-        status: isAdmin ? 'pending' : 'pending_payment',
-        payment_amount: isAdmin ? 0 : 5.00,
+        status: 'pending_payment',
+        payment_amount: 5.00,
       }])
       .select()
       .single();
@@ -52,12 +101,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: insertError.message }, { status: 500 });
     }
 
-    // If admin, no payment needed
-    if (isAdmin) {
-      return NextResponse.json({ success: true, isAdmin: true });
-    }
-
-    // For regular users, create Stripe Checkout with just the submission ID
+    // Create Stripe Checkout
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [

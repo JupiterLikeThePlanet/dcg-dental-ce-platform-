@@ -40,6 +40,7 @@ interface FormData {
   ce_credits: string;
   registration_url: string;
   image_url: string;
+  coupon_code: string;
 }
 
 const initialFormData: FormData = {
@@ -64,6 +65,7 @@ const initialFormData: FormData = {
   ce_credits: '',
   registration_url: '',
   image_url: '',
+  coupon_code: ''
 };
 
 const categories = [
@@ -224,7 +226,10 @@ const handleSubmit = async (e: React.FormEvent) => {
     const response = await fetch('/api/checkout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ submissionData }),
+      body: JSON.stringify({ 
+        submissionData,
+        couponCode: formData.coupon_code.trim().toUpperCase(),
+      }),
     });
 
     const data = await response.json();
@@ -732,6 +737,23 @@ const handleSubmit = async (e: React.FormEvent) => {
           className="w-full px-4 py-2 border border-gray-300 rounded-sm focus:outline-none focus:border-blue-500"
         />
         <p className="text-gray-500 text-sm mt-1">Leave blank to use a default dental image</p>
+      </div>
+
+      {/* Coupon Code */}
+      <div>
+        <label htmlFor="coupon_code" className="block text-sm font-medium text-gray-700 mb-1">
+          Coupon Code <span className="text-gray-400 text-xs">(optional)</span>
+        </label>
+        <input
+          type="text"
+          id="coupon_code"
+          name="coupon_code"
+          value={formData.coupon_code}
+          onChange={handleChange}
+          placeholder="Enter coupon code if you have one"
+          className="w-full px-4 py-2 border border-gray-300 rounded-sm focus:outline-none focus:border-blue-500 uppercase"
+        />
+        <p className="text-gray-500 text-sm mt-1">Have a coupon? Enter it to waive the $5 fee</p>
       </div>
     </div>
   );

@@ -2,6 +2,7 @@ import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import { redirect } from 'next/navigation';
 import SubmitClassForm from '@/components/submit/SubmitClassForm';
+import CanceledNotice from '@/components/submit/CanceledNotice';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,13 +45,7 @@ export default async function SubmitClassPage({ searchParams }: PageProps) {
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
       {/* Canceled Payment Notice */}
-      {canceled && (
-        <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-sm p-4">
-          <p className="text-yellow-800">
-            Payment was canceled. Your submission has been removed. Please try again when ready.
-          </p>
-        </div>
-      )}
+      {canceled && <CanceledNotice />}
 
       {/* Page Header */}
       <div className="mb-8">

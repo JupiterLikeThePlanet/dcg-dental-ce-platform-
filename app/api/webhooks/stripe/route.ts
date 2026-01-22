@@ -15,35 +15,31 @@ export async function POST(request: NextRequest) {
 
   let event: Stripe.Event;
 
-  // For local development, skip signature verification if no secret
-  if (process.env.STRIPE_WEBHOOK_SECRET && signature) {
-    try {
-      event = stripe.webhooks.constructEvent(
-        body,
-        signature,
-        process.env.STRIPE_WEBHOOK_SECRET
-      );
-    } catch (err) {
-      console.error('Webhook signature verification failed:', err);
-      return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
-    }
-  } else {
-    // Local dev: parse event directly
-    event = JSON.parse(body);
+  try {
+    event = stripe.webhooks.constructEvent(
+      body,
+      signature!,
+      process.env.STRIPE_WEBHOOK_SECRET!
+    );
+  } catch (err) {
+    console.error('Webhook signature verification failed:', err);
+    return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
   }
+
+  console.log('Webhook received:', event.type);
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object as Stripe.Checkout.Session;
     
     const submissionId = session.metadata?.submissionId;
-    const userId = session.metadata?.userId;
 
     if (!submissionId) {
       console.error('Missing submissionId in metadata');
       return NextResponse.json({ error: 'Missing submissionId' }, { status: 400 });
     }
 
-    // Update submission status to 'pending' (payment complete)
+    console.log('Updating submission:', submissionId);
+
     const { error: updateError } = await supabaseAdmin
       .from('submissions')
       .update({
@@ -57,7 +53,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: updateError.message }, { status: 500 });
     }
 
-    console.log('Submission updated after payment:', submissionId);
+    console.log('Submission updated successfully:', submissionId);
   }
 
   return NextResponse.json({ received: true });

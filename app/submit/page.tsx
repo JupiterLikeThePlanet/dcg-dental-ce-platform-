@@ -5,8 +5,13 @@ import SubmitClassForm from '@/components/submit/SubmitClassForm';
 
 export const dynamic = 'force-dynamic';
 
-export default async function SubmitClassPage() {
-  // Create Supabase client for Server Component
+interface PageProps {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}
+
+export default async function SubmitClassPage({ searchParams }: PageProps) {
+  const params = await searchParams;
+  
   const cookieStore = await cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -20,16 +25,33 @@ export default async function SubmitClassPage() {
     }
   );
 
-  // Check if user is logged in
   const { data: { user } } = await supabase.auth.getUser();
 
-  // Redirect to login if not authenticated
   if (!user) {
     redirect('/login?redirect=/submit');
   }
 
+  // Handle canceled payment - delete pending_payment submission
+  const canceled = params.canceled === 'true';
+  if (canceled) {
+    await supabase
+      .from('submissions')
+      .delete()
+      .eq('submitted_by', user.id)
+      .eq('status', 'pending_payment');
+  }
+
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
+      {/* Canceled Payment Notice */}
+      {canceled && (
+        <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-sm p-4">
+          <p className="text-yellow-800">
+            Payment was canceled. Your submission has been removed. Please try again when ready.
+          </p>
+        </div>
+      )}
+
       {/* Page Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">

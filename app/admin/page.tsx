@@ -3,6 +3,7 @@ import { createServerClient } from '@supabase/ssr';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import SubmissionsTable from '@/components/admin/SubmissionsTable';
+import AdminToast from '@/components/admin/AdminToast';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,7 +16,6 @@ interface PageProps {
 export default async function AdminPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const statusFilter = (params.status as SubmissionStatus) || 'pending';
-  const message = params.message as string | undefined;
 
   const cookieStore = await cookies();
   const supabase = createServerClient(
@@ -169,6 +169,9 @@ export default async function AdminPage({ searchParams }: PageProps) {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
+      {/* Toast Notifications */}
+      <AdminToast />
+
       {/* Page Header */}
       <div className="mb-6">
         <div className="flex items-center justify-between">
@@ -194,24 +197,6 @@ export default async function AdminPage({ searchParams }: PageProps) {
           </Link>
         </div>
       </div>
-
-      {/* Success Messages */}
-      {message === 'approved' && (
-        <div className="bg-green-50 border border-green-200 rounded-sm p-4 mb-6 flex items-center gap-2 animate-fade-in">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-600" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-          </svg>
-          <p className="text-green-700">Submission approved and published successfully!</p>
-        </div>
-      )}
-      {message === 'rejected' && (
-        <div className="bg-red-50 border border-red-200 rounded-sm p-4 mb-6 flex items-center gap-2 animate-fade-in">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-red-600" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-          </svg>
-          <p className="text-red-700">Submission has been rejected.</p>
-        </div>
-      )}
 
       {/* Quick Stats - Clickable Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">

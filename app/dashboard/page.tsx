@@ -1,11 +1,12 @@
-
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { createServerClient } from '@supabase/ssr'
 import Link from 'next/link';
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 
+export const dynamic = 'force-dynamic';
+
 export default async function DashboardPage() {
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -14,24 +15,6 @@ export default async function DashboardPage() {
       cookies: {
         get(name: string) {
           return cookieStore.get(name)?.value
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          try {
-            cookieStore.set({ name, value, ...options })
-          } catch (error) {
-            // The `set` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
-          }
-        },
-        remove(name: string, options: CookieOptions) {
-          try {
-            cookieStore.set({ name, value: '', ...options })
-          } catch (error) {
-            // The `remove` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
-          }
         },
       },
     }
@@ -43,17 +26,44 @@ export default async function DashboardPage() {
     redirect('/login')
   }
 
+  // Fetch user data including is_admin
+  const { data: userData } = await supabase
+    .from('users')
+    .select('is_admin, full_name')
+    .eq('id', user.id)
+    .single();
+
+  const isAdmin = userData?.is_admin || false;
+
   return (
     <div className="max-w-5xl mx-auto px-4 py-12">
       <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-gray-100 pb-8 mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+            <div className="flex items-center justify-between" >
+              <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+              {isAdmin && (
+                <Link
+                  href="/admin"
+                  // className="px-4 py-2 bg-orange-100 text-orange-700 text-sm font-semibold rounded-lg border border-orange-200 hover:bg-orange-200 transition-colors flex items-center gap-2"
+                  className=" ml-4 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-bold text-gray-700 hover:bg-gray-100 transition-colors"
+                  // className="text-blue-600 hover:text-blue-800"
+                >
+                  {/* <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clipRule="evenodd" />
+                  </svg> */}
+                  Admin Dash
+                </Link>
+              )}
+            </div>
             <p className="text-gray-500 mt-1">Manage your account and submissions</p>
           </div>
-          <div className="bg-blue-50 px-4 py-2 rounded-lg border border-blue-100">
-            <span className="text-xs font-bold text-blue-600 uppercase tracking-wider block">Logged in as</span>
-            <span className="text-sm font-semibold text-gray-800">{user.email}</span>
+          <div className="flex items-center gap-3">
+
+            <div className="bg-blue-50 px-4 py-2 rounded-lg border border-blue-100">
+              <span className="text-xs font-bold text-blue-600 uppercase tracking-wider block">Logged in as</span>
+              <span className="text-sm font-semibold text-gray-800">{user.email}</span>
+            </div>
           </div>
         </div>
 

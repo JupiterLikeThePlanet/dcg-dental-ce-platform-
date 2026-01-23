@@ -1,16 +1,17 @@
-
 'use client';
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase';
+import LoadingOverlay from '@/components/ui/LoadingOverlay';
 
 const LoginForm: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
@@ -20,21 +21,50 @@ const LoginForm: React.FC = () => {
     setLoading(true);
 
     try {
-      const { error: authError } = await supabase.auth.signInWithPassword({
+      // Sign in and get the user data from the response
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (authError) throw authError;
 
-      router.push('/dashboard');
+      // authData.user contains the logged-in user
+      const user = authData.user;
+      
+      if (!user) {
+        throw new Error('Login failed - no user returned');
+      }
+
+      // Show full-screen loading overlay while checking admin status
+      setIsRedirecting(true);
+
+      // Check if user is admin
+      const { data: userData } = await supabase
+        .from('users')
+        .select('is_admin, full_name')
+        .eq('id', user.id)
+        .single();
+
+      // Redirect based on admin status
+      if (userData?.is_admin) {
+        router.push('/admin');
+      } else {
+        router.push('/dashboard');
+      }
       router.refresh();
+      
     } catch (err: any) {
       setError(err.message || 'Failed to login');
-    } finally {
       setLoading(false);
+      setIsRedirecting(false);
     }
   };
+
+  // Show full-screen overlay when redirecting
+  if (isRedirecting) {
+    return <LoadingOverlay message="Signing you in..." />;
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -71,14 +101,24 @@ const LoginForm: React.FC = () => {
       <button
         type="submit"
         disabled={loading}
-        className="w-full py-2 bg-blue-600 text-white font-bold rounded hover:bg-blue-700 disabled:opacity-50 transition-colors shadow-sm"
+        className="w-full py-2 bg-blue-600 text-white font-bold rounded hover:bg-blue-700 disabled:opacity-50 transition-colors shadow-sm flex items-center justify-center gap-2"
       >
-        {loading ? 'Processing...' : 'Login'}
+        {loading ? (
+          <>
+            <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Signing in...
+          </>
+        ) : (
+          'Login'
+        )}
       </button>
 
       <div className="pt-4 border-t border-gray-100 text-center">
         <p className="text-sm text-gray-600">
-          Don't have an account? <Link href="/signup" className="text-blue-600 font-semibold hover:underline">Create one</Link>
+          Don&apos;t have an account? <Link href="/signup" className="text-blue-600 font-semibold hover:underline">Create one</Link>
         </p>
       </div>
     </form>

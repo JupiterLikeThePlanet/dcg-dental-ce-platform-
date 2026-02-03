@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 import Spinner from '@/components/ui/Spinner';
 
@@ -21,7 +21,7 @@ interface FormData {
   end_date: string;
   start_time: string;
   end_time: string;
-  timezone: string;  // ADD THIS LINE
+  timezone: string;
   
   // Location
   address_line1: string;
@@ -100,6 +100,7 @@ const states = [
 
 export default function SubmitClassForm({ userId, userEmail }: SubmitClassFormProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const supabase = createClient();
   
   const [formData, setFormData] = useState<FormData>(initialFormData);
@@ -108,9 +109,49 @@ export default function SubmitClassForm({ userId, userEmail }: SubmitClassFormPr
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [isNavigating, setIsNavigating] = useState(false);
-
   
+  // Template/Edit mode state
+  const [isTemplate, setIsTemplate] = useState(false);
+  const [isEdit, setIsEdit] = useState(false);
+  const [originalSubmissionId, setOriginalSubmissionId] = useState<string | null>(null);
+
   const totalSteps = 4;
+
+  // Load template or edit data from sessionStorage
+  useEffect(() => {
+    const templateParam = searchParams.get('template');
+    const editParam = searchParams.get('edit');
+
+    if (templateParam === 'true') {
+      const templateData = sessionStorage.getItem('submissionTemplate');
+      if (templateData) {
+        try {
+          const parsed = JSON.parse(templateData);
+          setFormData({ ...initialFormData, ...parsed, coupon_code: '' });
+          setIsTemplate(true);
+          // Clear the sessionStorage after loading
+          sessionStorage.removeItem('submissionTemplate');
+        } catch (e) {
+          console.error('Failed to parse template data:', e);
+        }
+      }
+    } else if (editParam === 'true') {
+      const editData = sessionStorage.getItem('submissionEdit');
+      if (editData) {
+        try {
+          const parsed = JSON.parse(editData);
+          const { originalId, ...formFields } = parsed;
+          setFormData({ ...initialFormData, ...formFields, coupon_code: '' });
+          setIsEdit(true);
+          setOriginalSubmissionId(originalId);
+          // Clear the sessionStorage after loading
+          sessionStorage.removeItem('submissionEdit');
+        } catch (e) {
+          console.error('Failed to parse edit data:', e);
+        }
+      }
+    }
+  }, [searchParams]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -199,89 +240,116 @@ export default function SubmitClassForm({ userId, userEmail }: SubmitClassFormPr
       setIsNavigating(false);
     }, 300);
   };
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  
-  if (!validateStep(currentStep)) return;
-  
-  setIsSubmitting(true);
-  setSubmitError(null);
 
-  try {
-    // Prepare submission data
-    const submissionData = {
-      title: formData.title.trim(),
-      description: formData.description.trim(),
-      category: formData.category,
-      start_date: formData.start_date,
-      end_date: formData.end_date || null,
-      start_time: formData.start_time,
-      end_time: formData.end_time,
-      address_line1: formData.address_line1.trim(),
-      address_line2: formData.address_line2.trim() || null,
-      city: formData.city.trim(),
-      state: formData.state,
-      zip_code: formData.zip_code.trim(),
-      instructor_name: formData.instructor_name.trim(),
-      provider_name: formData.provider_name.trim(),
-      contact_email: formData.contact_email.trim() || null,
-      contact_phone: formData.contact_phone.trim() || null,
-      price: parseFloat(formData.price),
-      ce_credits: formData.ce_credits ? parseInt(formData.ce_credits) : null,
-      registration_url: formData.registration_url.trim(),
-      image_url: formData.image_url.trim() || 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=800',
-    };
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateStep(currentStep)) return;
+    
+    setIsSubmitting(true);
+    setSubmitError(null);
 
-    // Call our checkout API
-    const response = await fetch('/api/checkout', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        submissionData,
-        couponCode: formData.coupon_code.trim().toUpperCase(),
-      }),
-    });
+    try {
+      // Prepare submission data
+      const submissionData = {
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+        category: formData.category,
+        start_date: formData.start_date,
+        end_date: formData.end_date || null,
+        start_time: formData.start_time,
+        end_time: formData.end_time,
+        address_line1: formData.address_line1.trim(),
+        address_line2: formData.address_line2.trim() || null,
+        city: formData.city.trim(),
+        state: formData.state,
+        zip_code: formData.zip_code.trim(),
+        instructor_name: formData.instructor_name.trim(),
+        provider_name: formData.provider_name.trim(),
+        contact_email: formData.contact_email.trim() || null,
+        contact_phone: formData.contact_phone.trim() || null,
+        price: parseFloat(formData.price),
+        ce_credits: formData.ce_credits ? parseInt(formData.ce_credits) : null,
+        registration_url: formData.registration_url.trim(),
+        image_url: formData.image_url.trim() || 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=800',
+      };
 
-    const data = await response.json();
+      // Call our checkout API
+      const response = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          submissionData, 
+          couponCode: formData.coupon_code.trim().toUpperCase() || null,
+          // Include original submission ID if this is an edit/resubmit
+          originalSubmissionId: isEdit ? originalSubmissionId : null,
+        }),
+      });
 
-    if (!response.ok) {
-      throw new Error(data.error || 'Failed to process submission');
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to process submission');
+      }
+
+      // If admin or coupon used, redirect to success
+      if (data.success && (data.isAdmin || data.usedCoupon)) {
+        router.push('/submit/success?method=' + (data.isAdmin ? 'admin' : 'coupon'));
+        return;
+      }
+
+      // Otherwise, redirect to Stripe Checkout
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error('No checkout URL received');
+      }
+
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';
+      setSubmitError(errorMessage);
+      setIsSubmitting(false);
     }
+  };
 
-    // If admin, redirect directly to success
-    if (data.isAdmin) {
-      router.push('/submit/success');
-      return;
-    }
-
-    // For regular users, redirect to Stripe Checkout
-    if (data.url) {
-      window.location.href = data.url;
-    } else {
-      throw new Error('No checkout URL returned');
-    }
-
-  } catch (error: unknown) {
-    console.error('Submission error:', error);
-    if (error instanceof Error) {
-      setSubmitError(`Failed to submit: ${error.message}`);
-    } else {
-      setSubmitError('Failed to submit. Please try again.');
-    }
-  } finally {
-    setIsSubmitting(false);
-  }
-};
-
+  // Step indicator component
   const renderStepIndicator = () => (
     <div className="mb-8">
+      {/* Template/Edit Mode Banner */}
+      {(isTemplate || isEdit) && (
+        <div className={`mb-4 p-3 rounded-lg flex items-center gap-2 ${
+          isEdit 
+            ? 'bg-blue-50 border border-blue-200 text-blue-700' 
+            : 'bg-purple-50 border border-purple-200 text-purple-700'
+        }`}>
+          {isEdit ? (
+            <>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+              </svg>
+              <span className="font-medium">Edit & Resubmit Mode</span>
+              <span className="text-sm">— Make your changes and submit again</span>
+            </>
+          ) : (
+            <>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M7 9a2 2 0 012-2h6a2 2 0 012 2v6a2 2 0 01-2 2H9a2 2 0 01-2-2V9z" />
+                <path d="M5 3a2 2 0 00-2 2v6a2 2 0 002 2V5h8a2 2 0 00-2-2H5z" />
+              </svg>
+              <span className="font-medium">Using Template</span>
+              <span className="text-sm">— Pre-filled from your previous submission</span>
+            </>
+          )}
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         {[1, 2, 3, 4].map((step) => (
           <div key={step} className="flex items-center">
             <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
                 step < currentStep
-                  ? 'bg-green-600 text-white'
+                  ? 'bg-green-500 text-white'
                   : step === currentStep
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-200 text-gray-600'
@@ -291,8 +359,8 @@ const handleSubmit = async (e: React.FormEvent) => {
             </div>
             {step < 4 && (
               <div
-                className={`w-16 sm:w-24 h-1 mx-2 ${
-                  step < currentStep ? 'bg-green-600' : 'bg-gray-200'
+                className={`w-16 sm:w-24 h-1 mx-2 transition-colors ${
+                  step < currentStep ? 'bg-green-500' : 'bg-gray-200'
                 }`}
               />
             )}
@@ -308,11 +376,11 @@ const handleSubmit = async (e: React.FormEvent) => {
     </div>
   );
 
+  // Step 1: Basic Info
   const renderStep1 = () => (
-    <div className="space-y-6 animate-fade-in">
-      <h2 className="text-xl font-semibold text-gray-900">Basic Information</h2>
+    <div className="space-y-4">
+      <h2 className="text-xl font-semibold text-gray-900 mb-4">Basic Information</h2>
       
-      {/* Title */}
       <div>
         <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
           Class Title <span className="text-red-500">*</span>
@@ -323,19 +391,16 @@ const handleSubmit = async (e: React.FormEvent) => {
           name="title"
           value={formData.title}
           onChange={handleChange}
+          placeholder="Introduction to Dental Implants"
           maxLength={100}
-          placeholder="e.g., Advanced Implant Techniques"
           className={`w-full px-4 py-2 border rounded-sm focus:outline-none focus:border-blue-500 ${
             errors.title ? 'border-red-500' : 'border-gray-300'
           }`}
         />
-        <div className="flex justify-between mt-1">
-          {errors.title && <p className="text-red-500 text-sm">{errors.title}</p>}
-          <p className="text-gray-400 text-sm ml-auto">{formData.title.length}/100</p>
-        </div>
+        {errors.title && <p className="text-red-500 text-sm mt-1">{errors.title}</p>}
+        <p className="text-gray-500 text-sm mt-1">{formData.title.length}/100 characters</p>
       </div>
 
-      {/* Description */}
       <div>
         <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
           Description <span className="text-red-500">*</span>
@@ -345,20 +410,17 @@ const handleSubmit = async (e: React.FormEvent) => {
           name="description"
           value={formData.description}
           onChange={handleChange}
+          rows={4}
+          placeholder="Describe what attendees will learn..."
           maxLength={1000}
-          rows={5}
-          placeholder="Describe what attendees will learn, topics covered, and any prerequisites..."
           className={`w-full px-4 py-2 border rounded-sm focus:outline-none focus:border-blue-500 ${
             errors.description ? 'border-red-500' : 'border-gray-300'
           }`}
         />
-        <div className="flex justify-between mt-1">
-          {errors.description && <p className="text-red-500 text-sm">{errors.description}</p>}
-          <p className="text-gray-400 text-sm ml-auto">{formData.description.length}/1000</p>
-        </div>
+        {errors.description && <p className="text-red-500 text-sm mt-1">{errors.description}</p>}
+        <p className="text-gray-500 text-sm mt-1">{formData.description.length}/1000 characters</p>
       </div>
 
-      {/* Category */}
       <div>
         <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
           Category <span className="text-red-500">*</span>
@@ -368,7 +430,7 @@ const handleSubmit = async (e: React.FormEvent) => {
           name="category"
           value={formData.category}
           onChange={handleChange}
-          className={`w-full px-4 py-2 border rounded-sm focus:outline-none focus:border-blue-500 bg-white ${
+          className={`w-full px-4 py-2 border rounded-sm focus:outline-none focus:border-blue-500 ${
             errors.category ? 'border-red-500' : 'border-gray-300'
           }`}
         >
@@ -382,11 +444,11 @@ const handleSubmit = async (e: React.FormEvent) => {
     </div>
   );
 
+  // Step 2: Date & Time
   const renderStep2 = () => (
-    <div className="space-y-6 animate-fade-in">
-      <h2 className="text-xl font-semibold text-gray-900">Date & Time</h2>
+    <div className="space-y-4">
+      <h2 className="text-xl font-semibold text-gray-900 mb-4">Date & Time</h2>
       
-      {/* Date Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label htmlFor="start_date" className="block text-sm font-medium text-gray-700 mb-1">
@@ -398,18 +460,16 @@ const handleSubmit = async (e: React.FormEvent) => {
             name="start_date"
             value={formData.start_date}
             onChange={handleChange}
-            min={new Date().toISOString().split('T')[0]}
-            className={`w-full px-4 py-2 border rounded-sm focus:outline-none focus:border-blue-500 cursor-pointer ${
+            className={`w-full px-4 py-2 border rounded-sm focus:outline-none focus:border-blue-500 ${
               errors.start_date ? 'border-red-500' : 'border-gray-300'
             }`}
-            onClick={(e) => (e.target as HTMLInputElement).showPicker()}
           />
           {errors.start_date && <p className="text-red-500 text-sm mt-1">{errors.start_date}</p>}
         </div>
 
         <div>
           <label htmlFor="end_date" className="block text-sm font-medium text-gray-700 mb-1">
-            End Date <span className="text-gray-400 text-xs">(for multi-day events)</span>
+            End Date <span className="text-gray-400 text-xs">(optional, for multi-day)</span>
           </label>
           <input
             type="date"
@@ -417,18 +477,15 @@ const handleSubmit = async (e: React.FormEvent) => {
             name="end_date"
             value={formData.end_date}
             onChange={handleChange}
-            min={formData.start_date || new Date().toISOString().split('T')[0]}
-            className={`w-full px-4 py-2 border rounded-sm focus:outline-none focus:border-blue-500 cursor-pointer ${
+            className={`w-full px-4 py-2 border rounded-sm focus:outline-none focus:border-blue-500 ${
               errors.end_date ? 'border-red-500' : 'border-gray-300'
             }`}
-            onClick={(e) => (e.target as HTMLInputElement).showPicker()}
           />
           {errors.end_date && <p className="text-red-500 text-sm mt-1">{errors.end_date}</p>}
         </div>
       </div>
 
-      {/* Time Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label htmlFor="start_time" className="block text-sm font-medium text-gray-700 mb-1">
             Start Time <span className="text-red-500">*</span>
@@ -462,42 +519,18 @@ const handleSubmit = async (e: React.FormEvent) => {
           />
           {errors.end_time && <p className="text-red-500 text-sm mt-1">{errors.end_time}</p>}
         </div>
-
-        <div>
-          <label htmlFor="timezone" className="block text-sm font-medium text-gray-700 mb-1">
-            Timezone <span className="text-red-500">*</span>
-          </label>
-          <select
-            id="timezone"
-            name="timezone"
-            value={formData.timezone}
-            onChange={handleChange}
-            className="w-full px-4 py-2 border border-gray-300 rounded-sm focus:outline-none focus:border-blue-500 bg-white"
-          >
-            <option value="America/Chicago">Central (CT)</option>
-            <option value="America/New_York">Eastern (ET)</option>
-            <option value="America/Denver">Mountain (MT)</option>
-            <option value="America/Los_Angeles">Pacific (PT)</option>
-            <option value="America/Phoenix">Arizona (AZ)</option>
-          </select>
-        </div>
       </div>
-
-      {/* Multi-day note */}
-      <p className="text-gray-500 text-sm">
-        Times are in 24-hour format. For multi-day events, the start/end times apply to each day.
-      </p>
     </div>
   );
 
+  // Step 3: Location
   const renderStep3 = () => (
-    <div className="space-y-6 animate-fade-in">
-      <h2 className="text-xl font-semibold text-gray-900">Location</h2>
+    <div className="space-y-4">
+      <h2 className="text-xl font-semibold text-gray-900 mb-4">Location</h2>
       
-      {/* Address Line 1 */}
       <div>
         <label htmlFor="address_line1" className="block text-sm font-medium text-gray-700 mb-1">
-          Street Address <span className="text-red-500">*</span>
+          Address Line 1 <span className="text-red-500">*</span>
         </label>
         <input
           type="text"
@@ -513,10 +546,9 @@ const handleSubmit = async (e: React.FormEvent) => {
         {errors.address_line1 && <p className="text-red-500 text-sm mt-1">{errors.address_line1}</p>}
       </div>
 
-      {/* Address Line 2 */}
       <div>
         <label htmlFor="address_line2" className="block text-sm font-medium text-gray-700 mb-1">
-          Suite/Unit <span className="text-gray-400 text-xs">(optional)</span>
+          Address Line 2 <span className="text-gray-400 text-xs">(optional)</span>
         </label>
         <input
           type="text"
@@ -529,7 +561,6 @@ const handleSubmit = async (e: React.FormEvent) => {
         />
       </div>
 
-      {/* City, State, ZIP */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="col-span-2">
           <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-1">
@@ -541,7 +572,7 @@ const handleSubmit = async (e: React.FormEvent) => {
             name="city"
             value={formData.city}
             onChange={handleChange}
-            placeholder="Baton Rouge"
+            placeholder="New Orleans"
             className={`w-full px-4 py-2 border rounded-sm focus:outline-none focus:border-blue-500 ${
               errors.city ? 'border-red-500' : 'border-gray-300'
             }`}
@@ -558,7 +589,7 @@ const handleSubmit = async (e: React.FormEvent) => {
             name="state"
             value={formData.state}
             onChange={handleChange}
-            className={`w-full px-4 py-2 border rounded-sm focus:outline-none focus:border-blue-500 bg-white ${
+            className={`w-full px-4 py-2 border rounded-sm focus:outline-none focus:border-blue-500 ${
               errors.state ? 'border-red-500' : 'border-gray-300'
             }`}
           >
@@ -571,7 +602,7 @@ const handleSubmit = async (e: React.FormEvent) => {
 
         <div>
           <label htmlFor="zip_code" className="block text-sm font-medium text-gray-700 mb-1">
-            ZIP <span className="text-red-500">*</span>
+            ZIP Code <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
@@ -579,8 +610,7 @@ const handleSubmit = async (e: React.FormEvent) => {
             name="zip_code"
             value={formData.zip_code}
             onChange={handleChange}
-            placeholder="70801"
-            maxLength={10}
+            placeholder="70112"
             className={`w-full px-4 py-2 border rounded-sm focus:outline-none focus:border-blue-500 ${
               errors.zip_code ? 'border-red-500' : 'border-gray-300'
             }`}
@@ -591,9 +621,10 @@ const handleSubmit = async (e: React.FormEvent) => {
     </div>
   );
 
+  // Step 4: Course Details
   const renderStep4 = () => (
-    <div className="space-y-6 animate-fade-in">
-      <h2 className="text-xl font-semibold text-gray-900">Course Details</h2>
+    <div className="space-y-4">
+      <h2 className="text-xl font-semibold text-gray-900 mb-4">Course Details</h2>
       
       {/* Instructor & Provider */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -789,7 +820,6 @@ const handleSubmit = async (e: React.FormEvent) => {
       )}
 
       {/* Navigation Buttons */}
-
       <div className="flex justify-between">
         <button
           type="button"
@@ -839,6 +869,8 @@ const handleSubmit = async (e: React.FormEvent) => {
                 <Spinner size="sm" />
                 Submitting...
               </>
+            ) : isEdit ? (
+              'Resubmit for Review'
             ) : (
               'Submit for Review'
             )}
@@ -848,7 +880,10 @@ const handleSubmit = async (e: React.FormEvent) => {
 
       {/* Pricing Note */}
       <p className="text-center text-gray-500 text-sm mt-6">
-        Submission fee: $5 (paid after review) • Questions? Contact support@dcgdental.com
+        {isEdit 
+          ? 'Resubmitting a rejected class is free • Questions? Contact support@dcgdental.com'
+          : 'Submission fee: $5 (paid after review) • Questions? Contact support@dcgdental.com'
+        }
       </p>
     </form>
   );

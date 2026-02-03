@@ -66,8 +66,9 @@ export default function UserSubmissionDetail({ submission }: UserSubmissionDetai
     });
   };
 
-  const canEdit = submission.status === 'rejected';
-  const canUseAsTemplate = submission.status === 'approved' || submission.status === 'rejected';
+  // Allow editing for all statuses except pending_payment
+  const canEdit = submission.status !== 'pending_payment';
+  const canUseAsTemplate = true; // Always allow using as template
 
   const handleUseAsTemplate = () => {
     // Store submission data in sessionStorage and redirect to submit page
@@ -96,8 +97,8 @@ export default function UserSubmissionDetail({ submission }: UserSubmissionDetai
     router.push('/submit?template=true');
   };
 
-  const handleEditAndResubmit = () => {
-    // Store full submission data including ID for resubmission
+  const handleEdit = () => {
+    // Store full submission data including ID for editing
     sessionStorage.setItem('submissionEdit', JSON.stringify({
       originalId: submission.id,
       title: submission.title,
@@ -122,6 +123,20 @@ export default function UserSubmissionDetail({ submission }: UserSubmissionDetai
       image_url: submission.image_url,
     }));
     router.push('/submit?edit=true');
+  };
+
+  // Determine button text based on status
+  const getEditButtonText = () => {
+    switch (submission.status) {
+      case 'rejected':
+        return 'Edit & Resubmit';
+      case 'pending':
+        return 'Edit Submission';
+      case 'approved':
+        return 'Edit Listing';
+      default:
+        return 'Edit';
+    }
   };
 
   return (
@@ -152,13 +167,17 @@ export default function UserSubmissionDetail({ submission }: UserSubmissionDetai
             )}
             {canEdit && (
               <button
-                onClick={handleEditAndResubmit}
-                className="px-4 py-2 rounded-lg font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors flex items-center gap-2"
+                onClick={handleEdit}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
+                  submission.status === 'rejected'
+                    ? 'bg-blue-600 text-white hover:bg-blue-700'
+                    : 'bg-gray-800 text-white hover:bg-gray-900'
+                }`}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                   <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
                 </svg>
-                Edit & Resubmit
+                {getEditButtonText()}
               </button>
             )}
           </div>
@@ -201,7 +220,24 @@ export default function UserSubmissionDetail({ submission }: UserSubmissionDetai
               <div>
                 <h3 className="font-semibold text-blue-800">Pending Review</h3>
                 <p className="text-blue-700 mt-1">
-                  Your submission is being reviewed by our team. You&apos;ll be notified once it&apos;s approved.
+                  Your submission is being reviewed by our team. You can still edit it while it&apos;s pending.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Pending Payment Notice */}
+        {submission.status === 'pending_payment' && (
+          <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div className="flex items-start gap-3">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-yellow-500 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+              <div>
+                <h3 className="font-semibold text-yellow-800">Payment Required</h3>
+                <p className="text-yellow-700 mt-1">
+                  This submission is awaiting payment. Complete the payment to submit for review.
                 </p>
               </div>
             </div>
@@ -218,7 +254,7 @@ export default function UserSubmissionDetail({ submission }: UserSubmissionDetai
               <div>
                 <h3 className="font-semibold text-green-800">Approved & Live</h3>
                 <p className="text-green-700 mt-1">
-                  Your class is now visible on the platform.{' '}
+                  Your class is now visible on the platform. You can edit the listing if needed.{' '}
                   <Link href="/classes" className="underline hover:text-green-800">
                     View all classes →
                   </Link>

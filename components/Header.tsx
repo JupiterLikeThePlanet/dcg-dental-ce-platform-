@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
-import { User } from '@supabase/supabase-js';
+import { User, AuthChangeEvent } from '@supabase/supabase-js';
 
 interface UserData {
   is_admin: boolean;
@@ -11,59 +12,135 @@ interface UserData {
 }
 
 const Header: React.FC = () => {
+  const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [isClient, setIsClient] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  
+  // Get supabase client once
   const supabase = createClient();
 
+  // Fetch user profile data
+  const fetchUserData = useCallback(async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('is_admin, full_name')
+        .eq('id', userId)
+        .single();
+      
+      if (error) {
+        console.error('Error fetching user data:', error);
+        return null;
+      }
+      return data;
+    } catch (err) {
+      console.error('Failed to fetch user data:', err);
+      return null;
+    }
+  }, [supabase]);
+
+  // Initialize auth state
   useEffect(() => {
     setIsClient(true);
-    
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-      
-      // Fetch additional user data (is_admin, full_name)
-      if (user) {
-        const { data } = await supabase
-          .from('users')
-          .select('is_admin, full_name')
-          .eq('id', user.id)
-          .single();
-        setUserData(data);
+
+    // Get initial session
+    const initializeAuth = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error getting session:', error);
+          return;
+        }
+
+        if (session?.user) {
+          setUser(session.user);
+          const data = await fetchUserData(session.user.id);
+          setUserData(data);
+        }
+      } catch (err) {
+        console.error('Auth initialization failed:', err);
       }
     };
-    getUser();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        const { data } = await supabase
-          .from('users')
-          .select('is_admin, full_name')
-          .eq('id', session.user.id)
-          .single();
-        setUserData(data);
-      } else {
-        setUserData(null);
+    initializeAuth();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event: AuthChangeEvent, session) => {
+        // Handle different auth events
+        switch (event) {
+          case 'SIGNED_IN':
+            if (session?.user) {
+              setUser(session.user);
+              const data = await fetchUserData(session.user.id);
+              setUserData(data);
+            }
+            break;
+          
+          case 'SIGNED_OUT':
+            setUser(null);
+            setUserData(null);
+            break;
+          
+          case 'TOKEN_REFRESHED':
+            // Session refreshed, user stays the same
+            if (session?.user) {
+              setUser(session.user);
+            }
+            break;
+          
+          case 'USER_UPDATED':
+            if (session?.user) {
+              setUser(session.user);
+              const data = await fetchUserData(session.user.id);
+              setUserData(data);
+            }
+            break;
+        }
       }
-    });
+    );
 
-    return () => subscription.unsubscribe();
-  }, []);
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [supabase, fetchUserData]);
 
+  // Logout handler
   const handleLogout = async () => {
+    if (isLoggingOut) return; // Prevent double-clicks
+    
     setIsLoggingOut(true);
-    await supabase.auth.signOut();
-    setUser(null);
-    setUserData(null);
-    window.location.href = '/';
+
+    try {
+      const { error } = await supabase.auth.signOut({ scope: 'local' });
+      
+      if (error) {
+        console.error('Logout error:', error);
+        // Still proceed with client-side cleanup
+      }
+
+      // Clear local state
+      setUser(null);
+      setUserData(null);
+      
+      // Navigate to home and refresh to clear any server-side cache
+      router.push('/');
+      router.refresh();
+      
+    } catch (err) {
+      console.error('Logout failed:', err);
+      // Force reload as fallback
+      window.location.href = '/';
+    } finally {
+      setIsLoggingOut(false);
+    }
   };
 
   // Get initials for avatar
-  const getInitials = () => {
+  const getInitials = (): string => {
     if (userData?.full_name) {
       return userData.full_name
         .split(' ')
@@ -78,7 +155,7 @@ const Header: React.FC = () => {
     return '?';
   };
 
-  // Don't render auth-dependent UI until client-side
+  // Server-side / initial render - minimal header
   if (!isClient) {
     return (
       <header className="bg-white border-b border-gray-200">
@@ -104,17 +181,23 @@ const Header: React.FC = () => {
         </Link>
         
         <nav className="flex gap-6 items-center">
-          <Link href="/classes" className="text-gray-700 hover:text-blue-700 text-sm font-medium transition-colors">
+          <Link 
+            href="/classes" 
+            className="text-gray-700 hover:text-blue-700 text-sm font-medium transition-colors"
+          >
             Browse Classes
           </Link>
 
-          <Link href="/submit" className="text-gray-700 hover:text-blue-700 text-sm font-medium transition-colors">
+          <Link 
+            href="/submit" 
+            className="text-gray-700 hover:text-blue-700 text-sm font-medium transition-colors"
+          >
             Submit Class
           </Link>
 
           {user ? (
             <div className="flex items-center gap-3">
-              {/* User Avatar & Info - Links to admin dash for admins, regular dash for others */}
+              {/* User Avatar & Info */}
               <Link 
                 href={userData?.is_admin ? '/admin' : '/dashboard'}
                 className="flex items-center gap-2 hover:opacity-80 transition-opacity"
@@ -141,10 +224,16 @@ const Header: React.FC = () => {
             </div>
           ) : (
             <div className="flex items-center gap-3">
-              <Link href="/login" className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded hover:bg-blue-700 transition-colors shadow-sm">
+              <Link 
+                href="/login" 
+                className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded hover:bg-blue-700 transition-colors shadow-sm"
+              >
                 Login
               </Link>
-              <Link href="/signup" className="px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-semibold rounded hover:bg-gray-50 transition-colors">
+              <Link 
+                href="/signup" 
+                className="px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-semibold rounded hover:bg-gray-50 transition-colors"
+              >
                 Sign Up
               </Link>
             </div>

@@ -285,11 +285,20 @@ export default function SubmitClassForm({ userId, userEmail }: SubmitClassFormPr
           originalSubmissionId: isEdit ? originalSubmissionId : null,
         }),
       });
+// ============================================
+// SUBMITCLASSFORM.TSX - PATCH
+// ============================================
 
       const data = await response.json();
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to process submission');
+      }
+
+      // Handle edit/resubmit response
+      if (data.success && data.isEdit) {
+        router.push('/submit/success?method=edit');
+        return;
       }
 
       // If admin or coupon used, redirect to success

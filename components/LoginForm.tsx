@@ -44,10 +44,12 @@ const LoginForm: React.FC = () => {
         .from('users')
         .select('is_admin, full_name')
         .eq('id', user.id)
-        .single();
+        // .single();
+        .single<{ is_admin: boolean }>();
 
       // Redirect based on admin status
-      if (userData?.is_admin) {
+      // if (userData?.is_admin) {
+      if ((userData as { is_admin?: boolean })?.is_admin) {
         router.push('/admin');
       } else {
         router.push('/dashboard');

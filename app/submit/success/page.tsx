@@ -1,49 +1,109 @@
+// app/submit/success/page.tsx
+
 import Link from 'next/link';
 
-export default function SubmitSuccessPage() {
+interface SuccessPageProps {
+  searchParams: Promise<{ method?: string; session_id?: string }>;
+}
+
+export default async function SubmitSuccessPage({ searchParams }: SuccessPageProps) {
+  const params = await searchParams;
+  const method = params.method;
+  const sessionId = params.session_id;
+
+  // Determine the message based on how they got here
+  const getMessage = () => {
+    switch (method) {
+      case 'admin':
+        return {
+          title: 'Submission Received!',
+          description: 'As an admin, your class has been submitted directly for review.',
+          icon: '✓',
+          color: 'green',
+        };
+      case 'coupon':
+        return {
+          title: 'Submission Received!',
+          description: 'Your coupon was applied successfully. Your class has been submitted for review.',
+          icon: '🎟️',
+          color: 'green',
+        };
+      case 'edit':
+        return {
+          title: 'Changes Saved!',
+          description: 'Your submission has been updated and resubmitted for review.',
+          icon: '✏️',
+          color: 'blue',
+        };
+      default:
+        // Paid via Stripe
+        return {
+          title: 'Payment Successful!',
+          description: 'Your payment was received and your class has been submitted for review.',
+          icon: '💳',
+          color: 'green',
+        };
+    }
+  };
+
+  const message = getMessage();
+
   return (
-    <div className="max-w-2xl mx-auto px-4 py-16 text-center">
-      {/* Success Icon */}
-      <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-        <span className="text-green-600 text-3xl">✓</span>
-      </div>
+    <div className="max-w-lg mx-auto px-4 py-16">
+      <div className="bg-white border border-gray-200 rounded-xl p-8 text-center">
+        {/* Icon */}
+        <div className={`w-16 h-16 mx-auto mb-6 rounded-full flex items-center justify-center text-3xl ${
+          message.color === 'blue' ? 'bg-blue-100' : 'bg-green-100'
+        }`}>
+          {message.icon}
+        </div>
 
-      {/* Success Message */}
-      <h1 className="text-3xl font-bold text-gray-900 mb-4">
-        Submission Received!
-      </h1>
-      
-      <p className="text-gray-600 mb-8">
-        Thank you for submitting your CE class. Our team will review your listing 
-        within 24-48 hours. Once approved, you&apos;ll receive an email with payment 
-        instructions to complete your $5 listing fee.
-      </p>
+        {/* Title */}
+        <h1 className={`text-2xl font-bold mb-2 ${
+          message.color === 'blue' ? 'text-blue-900' : 'text-green-900'
+        }`}>
+          {message.title}
+        </h1>
 
-      {/* What's Next */}
-      <div className="bg-gray-50 border border-gray-200 rounded-sm p-6 mb-8 text-left">
-        <h2 className="font-semibold text-gray-900 mb-3">What happens next?</h2>
-        <ol className="list-decimal list-inside space-y-2 text-gray-600">
-          <li>Our team reviews your submission (24-48 hours)</li>
-          <li>You&apos;ll receive an email notification</li>
-          <li>If approved, complete the $5 listing fee</li>
-          <li>Your class goes live on the platform!</li>
-        </ol>
-      </div>
+        {/* Description */}
+        <p className="text-gray-600 mb-6">
+          {message.description}
+        </p>
 
-      {/* Action Buttons */}
-      <div className="flex flex-col sm:flex-row gap-4 justify-center">
-        <Link
-          href="/classes"
-          className="px-6 py-3 bg-blue-600 text-white font-medium rounded-sm hover:bg-blue-700"
-        >
-          Browse Classes
-        </Link>
-        <Link
-          href="/dashboard"
-          className="px-6 py-3 bg-white border border-gray-300 text-gray-700 font-medium rounded-sm hover:bg-gray-50"
-        >
-          Go to Dashboard
-        </Link>
+        {/* What happens next */}
+        <div className="bg-gray-50 rounded-lg p-4 mb-6 text-left">
+          <h2 className="font-semibold text-gray-900 mb-2">What happens next?</h2>
+          <ol className="text-sm text-gray-600 space-y-2">
+            <li className="flex items-start gap-2">
+              <span className="bg-gray-200 text-gray-700 rounded-full w-5 h-5 flex items-center justify-center text-xs font-medium flex-shrink-0">1</span>
+              <span>Our team will review your submission within 1-2 business days</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="bg-gray-200 text-gray-700 rounded-full w-5 h-5 flex items-center justify-center text-xs font-medium flex-shrink-0">2</span>
+              <span>You&apos;ll receive an email when your class is approved</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="bg-gray-200 text-gray-700 rounded-full w-5 h-5 flex items-center justify-center text-xs font-medium flex-shrink-0">3</span>
+              <span>Once approved, your class will appear in the public listings</span>
+            </li>
+          </ol>
+        </div>
+
+        {/* Actions */}
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <Link
+            href="/dashboard"
+            className="px-6 py-2 bg-gray-900 text-white font-medium rounded-lg hover:bg-gray-800 transition-colors"
+          >
+            Go to Dashboard
+          </Link>
+          <Link
+            href="/submit"
+            className="px-6 py-2 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors"
+          >
+            Submit Another Class
+          </Link>
+        </div>
       </div>
     </div>
   );

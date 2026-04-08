@@ -7,7 +7,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 export async function POST(request: NextRequest) {
   try {
-    const { submissionData, couponCode } = await request.json();
+    const { submissionData, couponCode, originalSubmissionId } = await request.json();
 
     const cookieStore = await cookies();
     const supabase = createServerClient(
@@ -22,11 +22,13 @@ export async function POST(request: NextRequest) {
       }
     );
 
+    // Get current user
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Check if user is admin
     const { data: userData } = await supabase
       .from('users')
       .select('is_admin')
@@ -34,6 +36,102 @@ export async function POST(request: NextRequest) {
       .single();
 
     const isAdmin = userData?.is_admin || false;
+
+    // ==========================================
+    // EDIT MODE: Update existing submission
+    // ==========================================
+    if (originalSubmissionId) {
+      // Verify the original submission belongs to this user
+      const { data: originalSubmission, error: fetchError } = await supabase
+        .from('submissions')
+        .select('id, status, submitted_by')
+        .eq('id', originalSubmissionId)
+        .eq('submitted_by', user.id)
+        .single();
+
+      if (fetchError || !originalSubmission) {
+        return NextResponse.json(
+          { error: 'Original submission not found or access denied' },
+          { status: 404 }
+        );
+      }
+
+      // Determine what happens based on original status
+      const originalStatus = originalSubmission.status;
+
+      // For rejected or pending submissions: update and set to pending
+      if (originalStatus === 'rejected' || originalStatus === 'pending') {
+        const { error: updateError } = await supabase
+          .from('submissions')
+          .update({
+            ...submissionData,
+            status: 'pending',
+            rejection_reason: null,  // Clear rejection reason
+            reviewed_at: null,
+            reviewed_by: null,
+          })
+          .eq('id', originalSubmissionId);
+
+        if (updateError) {
+          console.error('Update error:', updateError);
+          return NextResponse.json({ error: updateError.message }, { status: 500 });
+        }
+
+        return NextResponse.json({ 
+          success: true, 
+          isEdit: true, 
+          message: 'Submission updated and resubmitted for review' 
+        });
+      }
+
+      // For approved submissions: update both submission AND the classes table
+      if (originalStatus === 'approved') {
+        // Update the submission record
+        const { error: updateSubmissionError } = await supabase
+          .from('submissions')
+          .update({
+            ...submissionData,
+          })
+          .eq('id', originalSubmissionId);
+
+        if (updateSubmissionError) {
+          console.error('Update submission error:', updateSubmissionError);
+          return NextResponse.json({ error: updateSubmissionError.message }, { status: 500 });
+        }
+
+        // Also update the corresponding class listing
+        // The class entry should have the same data
+        const { error: updateClassError } = await supabase
+          .from('classes')
+          .update({
+            ...submissionData,
+          })
+          .eq('submission_id', originalSubmissionId);
+
+        // Note: If there's no matching class (edge case), we don't fail
+        if (updateClassError) {
+          console.error('Update class error (non-fatal):', updateClassError);
+        }
+
+        return NextResponse.json({ 
+          success: true, 
+          isEdit: true, 
+          message: 'Listing updated successfully' 
+        });
+      }
+
+      // For pending_payment status: don't allow edit (they need to pay first)
+      if (originalStatus === 'pending_payment') {
+        return NextResponse.json(
+          { error: 'Cannot edit submission while payment is pending' },
+          { status: 400 }
+        );
+      }
+    }
+
+    // ==========================================
+    // NEW SUBMISSION MODE
+    // ==========================================
 
     // Check if coupon code is valid
     let validCoupon = false;
@@ -76,7 +174,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: insertError.message }, { status: 500 });
       }
 
-      return NextResponse.json({ success: true, isAdmin: true, usedCoupon: validCoupon });
+      return NextResponse.json({ success: true, isAdmin, usedCoupon: validCoupon });
     }
 
     // Invalid coupon provided

@@ -126,9 +126,7 @@ const Header: React.FC = () => {
       setUser(null);
       setUserData(null);
       
-      // Navigate to home and refresh to clear any server-side cache
       router.push('/');
-      router.refresh();
       
     } catch (err) {
       console.error('Logout failed:', err);

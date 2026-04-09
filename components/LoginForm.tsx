@@ -40,12 +40,13 @@ const LoginForm: React.FC = () => {
       setIsRedirecting(true);
 
       // Check if user is admin
-      const { data: userData } = await supabase
+      const { data } = await supabase
         .from('users')
         .select('is_admin, full_name')
         .eq('id', user.id)
-        // .single();
-        .single<{ is_admin: boolean }>();
+        .single();
+
+      const userData = data as { is_admin: boolean; full_name: string } | null;
 
       // Redirect based on admin status
       // if (userData?.is_admin) {

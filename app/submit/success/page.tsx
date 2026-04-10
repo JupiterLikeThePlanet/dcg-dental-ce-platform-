@@ -1,6 +1,6 @@
-// app/submit/success/page.tsx
-
 import Link from 'next/link';
+import Stripe from 'stripe';
+import { createClient } from '@supabase/supabase-js';
 
 interface SuccessPageProps {
   searchParams: Promise<{ method?: string; session_id?: string }>;
@@ -11,7 +11,35 @@ export default async function SubmitSuccessPage({ searchParams }: SuccessPagePro
   const method = params.method;
   const sessionId = params.session_id;
 
-  // Determine the message based on how they got here
+  // When Stripe redirects here with a session_id, verify payment and update status.
+  // This is the primary update path in dev (where the webhook CLI isn't running)
+  // and a reliable fallback in prod. The webhook does the same update but is idempotent.
+  if (sessionId) {
+    try {
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+      if (session.payment_status === 'paid' && session.metadata?.submissionId) {
+        const supabaseAdmin = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY!
+        );
+        // Only update if still pending_payment — webhook may have already fired
+        await supabaseAdmin
+          .from('submissions')
+          .update({
+            status: 'pending',
+            stripe_payment_id: session.payment_intent as string,
+          })
+          .eq('id', session.metadata.submissionId)
+          .eq('status', 'pending_payment');
+      }
+    } catch (err) {
+      // Non-fatal: webhook will handle it if this fails
+      console.error('Session verification error:', err);
+    }
+  }
+
   const getMessage = () => {
     switch (method) {
       case 'admin':

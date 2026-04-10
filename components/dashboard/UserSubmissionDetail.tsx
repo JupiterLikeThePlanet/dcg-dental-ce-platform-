@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import StatusBadge from '@/components/admin/StatusBadge';
@@ -38,6 +39,10 @@ interface UserSubmissionDetailProps {
 
 export default function UserSubmissionDetail({ submission }: UserSubmissionDetailProps) {
   const router = useRouter();
+  const [showPaymentEdit, setShowPaymentEdit] = useState(false);
+  const [couponInput, setCouponInput] = useState('');
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -66,9 +71,7 @@ export default function UserSubmissionDetail({ submission }: UserSubmissionDetai
     });
   };
 
-  // Allow editing for all statuses except pending_payment
-  const canEdit = submission.status !== 'pending_payment';
-  const canUseAsTemplate = true; // Always allow using as template
+  const canUseAsTemplate = true;
 
   const handleUseAsTemplate = () => {
     // Store submission data in sessionStorage and redirect to submit page
@@ -95,6 +98,98 @@ export default function UserSubmissionDetail({ submission }: UserSubmissionDetai
       image_url: submission.image_url,
     }));
     router.push('/submit?template=true');
+  };
+
+  // "Edit Class Details" for pending_payment — saves data only, no payment forced
+  const handleEditClassDetails = () => {
+    sessionStorage.setItem('submissionEdit', JSON.stringify({
+      originalId: submission.id,
+      classOnly: true,
+      title: submission.title,
+      description: submission.description,
+      category: submission.category || '',
+      start_date: submission.start_date,
+      end_date: submission.end_date || '',
+      start_time: submission.start_time,
+      end_time: submission.end_time,
+      address_line1: submission.address_line1,
+      address_line2: submission.address_line2 || '',
+      city: submission.city,
+      state: submission.state,
+      zip_code: submission.zip_code,
+      instructor_name: submission.instructor_name,
+      provider_name: submission.provider_name,
+      contact_email: submission.contact_email || '',
+      contact_phone: submission.contact_phone || '',
+      price: submission.price.toString(),
+      ce_credits: submission.ce_credits?.toString() || '',
+      registration_url: submission.registration_url,
+      image_url: submission.image_url,
+    }));
+    router.push('/submit?edit=true');
+  };
+
+  // "Edit Payment Details" — coupon or Stripe, no form required
+  const handlePaymentEditSubmit = async () => {
+    setIsProcessingPayment(true);
+    setPaymentError(null);
+
+    const submissionData = {
+      title: submission.title,
+      description: submission.description,
+      category: submission.category,
+      start_date: submission.start_date,
+      end_date: submission.end_date,
+      start_time: submission.start_time,
+      end_time: submission.end_time,
+      address_line1: submission.address_line1,
+      address_line2: submission.address_line2,
+      city: submission.city,
+      state: submission.state,
+      zip_code: submission.zip_code,
+      instructor_name: submission.instructor_name,
+      provider_name: submission.provider_name,
+      contact_email: submission.contact_email,
+      contact_phone: submission.contact_phone,
+      price: submission.price,
+      ce_credits: submission.ce_credits,
+      registration_url: submission.registration_url,
+      image_url: submission.image_url,
+    };
+
+    try {
+      const response = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          submissionData,
+          couponCode: couponInput.trim().toUpperCase() || null,
+          originalSubmissionId: submission.id,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setPaymentError(data.error || 'Failed to process payment details');
+        return;
+      }
+
+      // Coupon applied — submission moves to pending without payment
+      if (data.success && data.isEdit) {
+        router.push('/submit/success?method=edit');
+        return;
+      }
+
+      // Redirect to Stripe
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch {
+      setPaymentError('An unexpected error occurred. Please try again.');
+    } finally {
+      setIsProcessingPayment(false);
+    }
   };
 
   const handleEdit = () => {
@@ -125,17 +220,12 @@ export default function UserSubmissionDetail({ submission }: UserSubmissionDetai
     router.push('/submit?edit=true');
   };
 
-  // Determine button text based on status
   const getEditButtonText = () => {
     switch (submission.status) {
-      case 'rejected':
-        return 'Edit & Resubmit';
-      case 'pending':
-        return 'Edit Submission';
-      case 'approved':
-        return 'Edit Listing';
-      default:
-        return 'Edit';
+      case 'rejected': return 'Edit & Resubmit';
+      case 'pending':  return 'Edit Submission';
+      case 'approved': return 'Edit Listing';
+      default:         return 'Edit';
     }
   };
 
@@ -152,7 +242,7 @@ export default function UserSubmissionDetail({ submission }: UserSubmissionDetai
             <p className="text-gray-600">{submission.provider_name}</p>
           </div>
           
-          <div className="flex gap-3">
+          <div className="flex gap-3 flex-wrap">
             {canUseAsTemplate && (
               <button
                 onClick={handleUseAsTemplate}
@@ -165,7 +255,20 @@ export default function UserSubmissionDetail({ submission }: UserSubmissionDetai
                 Use as Template
               </button>
             )}
-            {canEdit && (
+
+            {submission.status === 'pending_payment' ? (
+              /* pending_payment: only payment action in header; edit details is in metadata row */
+              <button
+                onClick={() => { setShowPaymentEdit(v => !v); setPaymentError(null); }}
+                className="px-4 py-2 rounded-lg font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors flex items-center gap-2"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z" />
+                  <path fillRule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clipRule="evenodd" />
+                </svg>
+                Complete Payment
+              </button>
+            ) : (
               <button
                 onClick={handleEdit}
                 className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
@@ -244,6 +347,47 @@ export default function UserSubmissionDetail({ submission }: UserSubmissionDetai
           </div>
         )}
 
+        {/* Inline payment edit panel */}
+        {showPaymentEdit && submission.status === 'pending_payment' && (
+          <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+            <h3 className="font-semibold text-gray-900 mb-1">Edit Payment Details</h3>
+            <p className="text-sm text-gray-500 mb-3">
+              Apply a coupon to waive the $5 fee, or proceed directly to payment.
+              You can cancel without any changes.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <input
+                type="text"
+                value={couponInput}
+                onChange={e => setCouponInput(e.target.value.toUpperCase())}
+                placeholder="Coupon code (optional)"
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500 uppercase"
+              />
+              <button
+                onClick={handlePaymentEditSubmit}
+                disabled={isProcessingPayment}
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                  isProcessingPayment
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-gray-900 text-white hover:bg-gray-700'
+                }`}
+              >
+                {isProcessingPayment ? 'Processing...' : 'Proceed to Payment'}
+              </button>
+              <button
+                onClick={() => { setShowPaymentEdit(false); setCouponInput(''); setPaymentError(null); }}
+                disabled={isProcessingPayment}
+                className="px-4 py-2 text-sm font-medium rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+            {paymentError && (
+              <p className="text-red-600 text-sm mt-2">{paymentError}</p>
+            )}
+          </div>
+        )}
+
         {/* Approved Notice */}
         {submission.status === 'approved' && (
           <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
@@ -267,7 +411,7 @@ export default function UserSubmissionDetail({ submission }: UserSubmissionDetai
 
       {/* Submission Metadata */}
       <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
           <div>
             <p className="text-gray-500">Submitted On</p>
             <p className="font-medium">{formatDateTime(submission.created_at)}</p>
@@ -279,6 +423,18 @@ export default function UserSubmissionDetail({ submission }: UserSubmissionDetai
           <div>
             <p className="text-gray-500">Submission ID</p>
             <p className="font-medium font-mono text-xs">{submission.id.slice(0, 8)}...</p>
+          </div>
+          <div>
+            <p className="text-gray-500 mb-1">Actions</p>
+            <button
+              onClick={submission.status === 'pending_payment' ? handleEditClassDetails : handleEdit}
+              className="text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1 transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+              </svg>
+              Edit Class Details
+            </button>
           </div>
         </div>
       </div>

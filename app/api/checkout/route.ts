@@ -1,13 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createServerClient } from '@supabase/ssr';
+import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
+// Admin client bypasses RLS — used only after ownership is verified via the user client
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
 export async function POST(request: NextRequest) {
   try {
-    const { submissionData, couponCode, originalSubmissionId } = await request.json();
+    const { submissionData, couponCode, originalSubmissionId, editClassOnly } = await request.json();
 
     const cookieStore = await cookies();
     const supabase = createServerClient(
@@ -61,12 +68,12 @@ export async function POST(request: NextRequest) {
 
       // For rejected or pending submissions: update and set to pending
       if (originalStatus === 'rejected' || originalStatus === 'pending') {
-        const { error: updateError } = await supabase
+        const { error: updateError } = await supabaseAdmin
           .from('submissions')
           .update({
             ...submissionData,
             status: 'pending',
-            rejection_reason: null,  // Clear rejection reason
+            rejection_reason: null,
             reviewed_at: null,
             reviewed_by: null,
           })
@@ -86,12 +93,9 @@ export async function POST(request: NextRequest) {
 
       // For approved submissions: update both submission AND the classes table
       if (originalStatus === 'approved') {
-        // Update the submission record
-        const { error: updateSubmissionError } = await supabase
+        const { error: updateSubmissionError } = await supabaseAdmin
           .from('submissions')
-          .update({
-            ...submissionData,
-          })
+          .update({ ...submissionData })
           .eq('id', originalSubmissionId);
 
         if (updateSubmissionError) {
@@ -99,13 +103,9 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: updateSubmissionError.message }, { status: 500 });
         }
 
-        // Also update the corresponding class listing
-        // The class entry should have the same data
-        const { error: updateClassError } = await supabase
+        const { error: updateClassError } = await supabaseAdmin
           .from('classes')
-          .update({
-            ...submissionData,
-          })
+          .update({ ...submissionData })
           .eq('submission_id', originalSubmissionId);
 
         // Note: If there's no matching class (edge case), we don't fail
@@ -120,12 +120,75 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      // For pending_payment status: don't allow edit (they need to pay first)
+      // For pending_payment: update data, then either save-only or handle payment
       if (originalStatus === 'pending_payment') {
-        return NextResponse.json(
-          { error: 'Cannot edit submission while payment is pending' },
-          { status: 400 }
-        );
+        const { error: updateError } = await supabaseAdmin
+          .from('submissions')
+          .update({ ...submissionData })
+          .eq('id', originalSubmissionId);
+
+        if (updateError) {
+          console.error('Update error:', updateError);
+          return NextResponse.json({ error: updateError.message }, { status: 500 });
+        }
+
+        // Class-only edit: data saved, no payment step right now
+        if (editClassOnly) {
+          return NextResponse.json({ success: true, isEdit: true, message: 'Class details updated' });
+        }
+
+        // Payment edit: check coupon first
+        if (couponCode) {
+          const { data: coupon } = await supabase
+            .from('coupon_codes')
+            .select('*')
+            .eq('code', couponCode)
+            .eq('is_active', true)
+            .single();
+
+          if (!coupon || (coupon.max_uses !== null && coupon.current_uses >= coupon.max_uses)) {
+            return NextResponse.json({ error: 'Invalid or expired coupon code' }, { status: 400 });
+          }
+
+          await supabaseAdmin
+            .from('coupon_codes')
+            .update({ current_uses: coupon.current_uses + 1 })
+            .eq('id', coupon.id);
+
+          await supabaseAdmin
+            .from('submissions')
+            .update({ status: 'pending', coupon_code: couponCode, payment_amount: 0 })
+            .eq('id', originalSubmissionId);
+
+          return NextResponse.json({ success: true, isEdit: true, usedCoupon: true });
+        }
+
+        // No coupon: create a new Stripe session pointing to the existing submission
+        const session = await stripe.checkout.sessions.create({
+          payment_method_types: ['card'],
+          line_items: [
+            {
+              price_data: {
+                currency: 'usd',
+                product_data: {
+                  name: 'CE Class Listing',
+                  description: `Listing: ${submissionData.title.substring(0, 50)}`,
+                },
+                unit_amount: 500,
+              },
+              quantity: 1,
+            },
+          ],
+          mode: 'payment',
+          success_url: `${request.nextUrl.origin}/submit/success?session_id={CHECKOUT_SESSION_ID}`,
+          cancel_url: `${request.nextUrl.origin}/submit?canceled=true`,
+          metadata: {
+            submissionId: originalSubmissionId,
+            userId: user.id,
+          },
+        });
+
+        return NextResponse.json({ sessionId: session.id, url: session.url });
       }
     }
 

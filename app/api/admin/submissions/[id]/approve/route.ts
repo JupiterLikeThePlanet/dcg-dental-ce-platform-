@@ -93,6 +93,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       posted_by: submission.submitted_by,
       is_admin_post: false,
       status: 'approved',
+      submission_id: id,
     };
 
     const { data: newClass, error: insertError } = await supabaseAdmin

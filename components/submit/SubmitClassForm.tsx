@@ -820,7 +820,7 @@ export default function SubmitClassForm({ userId, userEmail }: SubmitClassFormPr
   );
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit} noValidate>
       {/* Step Indicator */}
       {renderStepIndicator()}
 

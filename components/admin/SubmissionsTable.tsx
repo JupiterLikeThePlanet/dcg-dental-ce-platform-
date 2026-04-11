@@ -82,9 +82,6 @@ export default function SubmissionsTable({
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Submitted
               </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -92,9 +89,12 @@ export default function SubmissionsTable({
               <tr key={submission.id} className="hover:bg-gray-50">
                 <td className="px-4 py-4">
                   <div className="max-w-xs">
-                    <p className="text-sm font-medium text-gray-900 truncate">
+                    <Link
+                      href={`/admin/submissions/${submission.id}`}
+                      className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline truncate block"
+                    >
                       {submission.title}
-                    </p>
+                    </Link>
                     <p className="text-sm text-gray-500 truncate">
                       {submission.provider_name}
                     </p>
@@ -144,14 +144,6 @@ export default function SubmissionsTable({
                   <p className="text-sm text-gray-500">
                     {formatDateTime(submission.created_at)}
                   </p>
-                </td>
-                <td className="px-4 py-4 whitespace-nowrap text-right">
-                  <Link
-                    href={`/admin/submissions/${submission.id}`}
-                    className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                  >
-                    View →
-                  </Link>
                 </td>
               </tr>
             ))}

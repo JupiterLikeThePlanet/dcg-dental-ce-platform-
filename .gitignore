@@ -67,5 +67,7 @@ coverage/
 playwright-report/
 test-results/
 
+supabase/
+
 # Misc
 .cache/.next

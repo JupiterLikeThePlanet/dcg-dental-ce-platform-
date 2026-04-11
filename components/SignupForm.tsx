@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase';
 const SignupForm: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -24,6 +25,9 @@ const SignupForm: React.FC = () => {
         password,
         options: {
           emailRedirectTo: `${window.location.origin}/auth/callback`,
+          // Store full_name in auth metadata so the callback can read it
+          // when creating the public.users profile row
+          data: { full_name: fullName.trim() },
         },
       });
 
@@ -56,6 +60,18 @@ const SignupForm: React.FC = () => {
           {error}
         </div>
       )}
+
+      <div>
+        <label className="block text-sm font-bold text-gray-700 mb-1">Full Name</label>
+        <input
+          type="text"
+          value={fullName}
+          onChange={(e) => setFullName(e.target.value)}
+          required
+          placeholder="Dr. Jane Smith"
+          className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+        />
+      </div>
 
       <div>
         <label className="block text-sm font-bold text-gray-700 mb-1">Email Address</label>

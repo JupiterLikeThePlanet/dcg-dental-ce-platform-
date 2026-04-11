@@ -36,7 +36,7 @@ export default async function ClassesPage({ searchParams }: PageProps) {
   const dirParam = (params.dir as SortDirection) || 'asc';
   const pageParam = params.page as string || '1';
   const searchQuery = (params.search as string) || '';
-  const cityFilter = (params.city as string) || '';
+  const stateFilter = (params.state as string) || '';
   const categoryFilter = (params.category as string) || '';
   
   // Validate sort option
@@ -67,15 +67,16 @@ export default async function ClassesPage({ searchParams }: PageProps) {
     }
   );
 
-  // Fetch all unique cities for the filter dropdown
-  const { data: citiesData } = await supabase
+  // Fetch all unique states for the filter dropdown
+  const { data: statesData } = await supabase
     .from('classes')
-    .select('city')
+    .select('state')
     .eq('status', 'approved')
-    .is('deleted_at', null);
-  
-  // Extract unique cities and sort alphabetically
-  const availableCities = [...new Set(citiesData?.map(c => c.city) || [])].sort();
+    .is('deleted_at', null)
+    .not('state', 'is', null);
+
+  // Extract unique states and sort alphabetically
+  const availableStates = [...new Set(statesData?.map(c => c.state).filter(Boolean) || [])].sort() as string[];
 
   // Fetch all unique categories for the filter dropdown
   const { data: categoriesData } = await supabase
@@ -116,9 +117,9 @@ export default async function ClassesPage({ searchParams }: PageProps) {
     countQuery = countQuery.or(`title.ilike.%${effectiveSearch}%,description.ilike.%${effectiveSearch}%,instructor_name.ilike.%${searchQuery}%`);
   }
 
-  // Apply city filter to count query
-  if (cityFilter) {
-    countQuery = countQuery.eq('city', cityFilter);
+  // Apply state filter to count query
+  if (stateFilter) {
+    countQuery = countQuery.eq('state', stateFilter);
   }
 
   // Apply category filter to count query
@@ -168,9 +169,9 @@ export default async function ClassesPage({ searchParams }: PageProps) {
     mainQuery = mainQuery.or(`title.ilike.%${effectiveSearch}%,description.ilike.%${effectiveSearch}%,instructor_name.ilike.%${searchQuery}%`);
   }
 
-  // Apply city filter to main query
-  if (cityFilter) {
-    mainQuery = mainQuery.eq('city', cityFilter);
+  // Apply state filter to main query
+  if (stateFilter) {
+    mainQuery = mainQuery.eq('state', stateFilter);
   }
 
   // Apply category filter to main query
@@ -212,16 +213,16 @@ export default async function ClassesPage({ searchParams }: PageProps) {
         </h1>
         <p className="text-gray-600">
           {totalItems} {totalItems === 1 ? 'class' : 'classes'} available
-          {(searchQuery || cityFilter || categoryFilter) && ' (filtered)'}
+          {(searchQuery || stateFilter || categoryFilter) && ' (filtered)'}
         </p>
       </div>
 
       {/* Search and Filter Bar */}
-      <FilterBar 
+      <FilterBar
         currentSearch={searchQuery}
-        currentCity={cityFilter}
+        currentState={stateFilter}
         currentCategory={categoryFilter}
-        availableCities={availableCities}
+        availableStates={availableStates}
         availableCategories={availableCategories}
       />
 

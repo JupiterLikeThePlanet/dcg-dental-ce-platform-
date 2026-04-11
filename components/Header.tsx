@@ -111,30 +111,18 @@ const Header: React.FC = () => {
   // Logout handler
   const handleLogout = async () => {
     if (isLoggingOut) return; // Prevent double-clicks
-    
+
     setIsLoggingOut(true);
 
     try {
-      const { error } = await supabase.auth.signOut({ scope: 'local' });
-      
-      if (error) {
-        console.error('Logout error:', error);
-        // Still proceed with client-side cleanup
-      }
-
-      // Clear local state
-      setUser(null);
-      setUserData(null);
-      
-      router.push('/');
-      
+      // Sign out via server route so auth cookies are cleared server-side
+      await fetch('/api/auth/logout', { method: 'POST' });
     } catch (err) {
-      console.error('Logout failed:', err);
-      // Force reload as fallback
-      window.location.href = '/';
-    } finally {
-      setIsLoggingOut(false);
+      console.error('Logout request failed:', err);
     }
+
+    // Hard redirect clears all client state and forces a fresh server render
+    window.location.href = '/';
   };
 
   // Get initials for avatar

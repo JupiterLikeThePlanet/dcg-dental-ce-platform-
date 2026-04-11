@@ -5,22 +5,22 @@ import { useState, useEffect } from 'react';
 
 interface FilterBarProps {
   currentSearch: string;
-  currentCity: string;
+  currentState: string;
   currentCategory: string;
-  availableCities: string[];
+  availableStates: string[];
   availableCategories: string[];
 }
 
-export default function FilterBar({ 
-  currentSearch, 
-  currentCity,
+export default function FilterBar({
+  currentSearch,
+  currentState,
   currentCategory,
-  availableCities,
+  availableStates,
   availableCategories
 }: FilterBarProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  
+
   // Local state for search input (to enable typing without immediate URL updates)
   const [searchInput, setSearchInput] = useState(currentSearch);
 
@@ -29,9 +29,9 @@ export default function FilterBar({
     setSearchInput(currentSearch);
   }, [currentSearch]);
 
-  const updateFilters = (newParams: { search?: string; city?: string; category?: string }) => {
+  const updateFilters = (newParams: { search?: string; state?: string; category?: string }) => {
     const params = new URLSearchParams(searchParams.toString());
-    
+
     // Update search param
     if (newParams.search !== undefined) {
       if (newParams.search) {
@@ -40,13 +40,13 @@ export default function FilterBar({
         params.delete('search');
       }
     }
-    
-    // Update city param
-    if (newParams.city !== undefined) {
-      if (newParams.city) {
-        params.set('city', newParams.city);
+
+    // Update state param
+    if (newParams.state !== undefined) {
+      if (newParams.state) {
+        params.set('state', newParams.state);
       } else {
-        params.delete('city');
+        params.delete('state');
       }
     }
 
@@ -58,10 +58,10 @@ export default function FilterBar({
         params.delete('category');
       }
     }
-    
+
     // Reset to page 1 when filters change
     params.delete('page');
-    
+
     router.push(`/classes?${params.toString()}`);
   };
 
@@ -70,8 +70,8 @@ export default function FilterBar({
     updateFilters({ search: searchInput.trim() });
   };
 
-  const handleCityChange = (city: string) => {
-    updateFilters({ city });
+  const handleStateChange = (state: string) => {
+    updateFilters({ state });
   };
 
   const handleCategoryChange = (category: string) => {
@@ -81,14 +81,14 @@ export default function FilterBar({
   const handleClearAll = () => {
     const params = new URLSearchParams(searchParams.toString());
     params.delete('search');
-    params.delete('city');
+    params.delete('state');
     params.delete('category');
     params.delete('page');
     setSearchInput('');
     router.push(`/classes?${params.toString()}`);
   };
 
-  const hasActiveFilters = currentSearch || currentCity || currentCategory;
+  const hasActiveFilters = currentSearch || currentState || currentCategory;
 
   return (
     <div className="mb-6 space-y-4">
@@ -129,17 +129,17 @@ export default function FilterBar({
           </select>
         </div>
 
-        {/* City Filter Dropdown */}
-        <div className="sm:w-48">
+        {/* State Filter Dropdown */}
+        <div className="sm:w-36">
           <select
-            value={currentCity}
-            onChange={(e) => handleCityChange(e.target.value)}
+            value={currentState}
+            onChange={(e) => handleStateChange(e.target.value)}
             className="w-full px-4 py-2 border border-gray-300 rounded-sm focus:outline-none focus:border-blue-500 text-sm bg-white"
           >
-            <option value="">All Locations</option>
-            {availableCities.map((city) => (
-              <option key={city} value={city}>
-                {city}
+            <option value="">All States</option>
+            {availableStates.map((state) => (
+              <option key={state} value={state}>
+                {state}
               </option>
             ))}
           </select>
@@ -150,7 +150,7 @@ export default function FilterBar({
       {hasActiveFilters && (
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm text-gray-600">Active filters:</span>
-          
+
           {currentSearch && (
             <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 text-sm rounded-sm">
               &quot;{currentSearch}&quot;
@@ -174,19 +174,19 @@ export default function FilterBar({
               </button>
             </span>
           )}
-          
-          {currentCity && (
+
+          {currentState && (
             <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-800 text-sm rounded-sm">
-              {currentCity}
+              {currentState}
               <button
-                onClick={() => updateFilters({ city: '' })}
+                onClick={() => updateFilters({ state: '' })}
                 className="ml-1 hover:text-green-600"
               >
                 ✕
               </button>
             </span>
           )}
-          
+
           <button
             onClick={handleClearAll}
             className="text-sm text-gray-500 hover:text-gray-700 underline"

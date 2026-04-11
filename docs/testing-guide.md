@@ -182,8 +182,15 @@ You need to copy the table structure (but NOT the data) from production to stagi
 In the SQL Editor, run:
 ```sql
 -- This shows your table structures. Copy the output.
-SELECT table_name FROM information_schema.tables
-WHERE table_schema = 'public';
+SELECT 
+  table_name,
+  column_name,
+  data_type,
+  is_nullable,
+  column_default
+FROM information_schema.columns
+WHERE table_schema = 'public'
+ORDER BY table_name, ordinal_position;
 ```
 
 **Easier method — use Supabase CLI (recommended):**

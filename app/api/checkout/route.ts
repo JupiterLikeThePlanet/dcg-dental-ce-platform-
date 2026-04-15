@@ -166,6 +166,7 @@ export async function POST(request: NextRequest) {
         // No coupon: create a new Stripe session pointing to the existing submission
         const session = await stripe.checkout.sessions.create({
           payment_method_types: ['card'],
+          customer_email: user.email ?? undefined,
           line_items: [
             {
               price_data: {
@@ -265,6 +266,7 @@ export async function POST(request: NextRequest) {
     // Create Stripe Checkout
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
+      customer_email: user.email ?? undefined,
       line_items: [
         {
           price_data: {

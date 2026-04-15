@@ -1,7 +1,25 @@
 
 import Link from 'next/link';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 
-export default function HomePage() {
+export const dynamic = 'force-dynamic';
+
+export default async function HomePage() {
+  const cookieStore = await cookies();
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value;
+        },
+      },
+    }
+  );
+  const { data: { user } } = await supabase.auth.getUser();
+
   return (
     <div className="max-w-5xl mx-auto px-4 py-20">
       <div className="text-center">
@@ -15,11 +33,11 @@ export default function HomePage() {
         </p>
         
         <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
-          <Link 
-            href="/signup" 
+          <Link
+            href={user ? "/dashboard" : "/signup"}
             className="px-8 py-4 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl text-lg"
           >
-            Get Started Free
+            {user ? "Go To Dashboard" : "Get Started Free"}
           </Link>
           <Link
             href="/classes"

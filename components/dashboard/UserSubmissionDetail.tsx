@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import StatusBadge from '@/components/admin/StatusBadge';
@@ -150,6 +149,7 @@ export default function UserSubmissionDetail({ submission }: UserSubmissionDetai
           <div className="flex gap-3 flex-wrap">
             {canUseAsTemplate && (
               <button
+              
                 onClick={handleUseAsTemplate}
                 className="px-4 py-2 rounded-lg font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors flex items-center gap-2"
               >

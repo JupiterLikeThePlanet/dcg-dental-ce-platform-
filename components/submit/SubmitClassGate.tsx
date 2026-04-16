@@ -19,9 +19,10 @@ export default function SubmitClassGate({ userId, userEmail, verifiedStripeSessi
   const isEdit = searchParams.get('edit') === 'true';
   const isTemplate = searchParams.get('template') === 'true';
 
-  // Edit/template modes bypass the payment gate — payment was already handled
-  // Stripe-verified or coupon-granted also go straight to the form
-  if (isEdit || isTemplate || verifiedStripeSessionId || grantedCoupon) {
+  // Edit mode bypasses the payment gate — payment was already handled for that submission.
+  // Templates are treated as new submissions and must go through the gate.
+  // Stripe-verified or coupon-granted go straight to the form.
+  if (isEdit || verifiedStripeSessionId || grantedCoupon) {
     return (
       <SubmitClassForm
         userId={userId}

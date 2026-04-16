@@ -1,7 +1,8 @@
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import { redirect } from 'next/navigation';
-import SubmitClassForm from '@/components/submit/SubmitClassForm';
+import Stripe from 'stripe';
+import SubmitClassGate from '@/components/submit/SubmitClassGate';
 import CanceledNotice from '@/components/submit/CanceledNotice';
 
 export const dynamic = 'force-dynamic';
@@ -12,7 +13,7 @@ interface PageProps {
 
 export default async function SubmitClassPage({ searchParams }: PageProps) {
   const params = await searchParams;
-  
+
   const cookieStore = await cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -32,14 +33,21 @@ export default async function SubmitClassPage({ searchParams }: PageProps) {
     redirect('/login?redirect=/submit');
   }
 
-  // Handle canceled payment - delete pending_payment submission
   const canceled = params.canceled === 'true';
-  if (canceled) {
-    await supabase
-      .from('submissions')
-      .delete()
-      .eq('submitted_by', user.id)
-      .eq('status', 'pending_payment');
+
+  // Verify a Stripe payment session when redirected back from checkout
+  let verifiedStripeSessionId: string | null = null;
+  const paidParam = typeof params.paid === 'string' ? params.paid : null;
+  if (paidParam) {
+    try {
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+      const session = await stripe.checkout.sessions.retrieve(paidParam);
+      if (session.payment_status === 'paid' && session.metadata?.userId === user.id) {
+        verifiedStripeSessionId = paidParam;
+      }
+    } catch {
+      // Invalid or unrecognised session — fall through to show payment gate
+    }
   }
 
   return (
@@ -53,13 +61,17 @@ export default async function SubmitClassPage({ searchParams }: PageProps) {
           Submit a CE Class
         </h1>
         <p className="text-gray-600">
-          List your dental continuing education course for just $5. 
-          Your submission will be reviewed and published within 24-48 hours.
+          List your dental continuing education course for just $5.
+          Your submission will be reviewed and published within 24–48 hours.
         </p>
       </div>
 
-      {/* Submission Form */}
-      <SubmitClassForm userId={user.id} userEmail={user.email || ''} />
+      {/* Payment gate → form */}
+      <SubmitClassGate
+        userId={user.id}
+        userEmail={user.email || ''}
+        verifiedStripeSessionId={verifiedStripeSessionId}
+      />
     </div>
   );
 }

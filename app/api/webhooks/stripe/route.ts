@@ -34,8 +34,10 @@ export async function POST(request: NextRequest) {
     const submissionId = session.metadata?.submissionId;
 
     if (!submissionId) {
-      console.error('Missing submissionId in metadata');
-      return NextResponse.json({ error: 'Missing submissionId' }, { status: 400 });
+      // Payment gate sessions have no submissionId — submission is created after
+      // the user fills the form, so there's nothing to update here.
+      console.log('No submissionId in metadata — payment gate session, skipping update');
+      return NextResponse.json({ received: true });
     }
 
     console.log('Updating submission:', submissionId);

@@ -14,7 +14,7 @@ const supabaseAdmin = createClient(
 
 export async function POST(request: NextRequest) {
   try {
-    const { submissionData, couponCode, originalSubmissionId, editClassOnly } = await request.json();
+    const { submissionData, stripeSessionId, grantedCoupon, couponCode, originalSubmissionId, editClassOnly } = await request.json();
 
     const cookieStore = await cookies();
     const supabase = createServerClient(
@@ -195,34 +195,11 @@ export async function POST(request: NextRequest) {
 
     // ==========================================
     // NEW SUBMISSION MODE
+    // Payment is collected upfront via the payment gate.
     // ==========================================
 
-    // Check if coupon code is valid
-    let validCoupon = false;
-    if (couponCode) {
-      const { data: coupon } = await supabase
-        .from('coupon_codes')
-        .select('*')
-        .eq('code', couponCode)
-        .eq('is_active', true)
-        .single();
-
-      if (coupon) {
-        // Check if coupon has uses remaining
-        if (coupon.max_uses === null || coupon.current_uses < coupon.max_uses) {
-          validCoupon = true;
-          
-          // Increment current_uses
-          await supabase
-            .from('coupon_codes')
-            .update({ current_uses: coupon.current_uses + 1 })
-            .eq('id', coupon.id);
-        }
-      }
-    }
-
-    // If admin or valid coupon, save directly (no payment)
-    if (isAdmin || validCoupon) {
+    // Admin bypass — no payment required
+    if (isAdmin) {
       const { error: insertError } = await supabase
         .from('submissions')
         .insert([{
@@ -230,7 +207,6 @@ export async function POST(request: NextRequest) {
           submitted_by: user.id,
           status: 'pending',
           payment_amount: 0,
-          coupon_code: validCoupon ? couponCode : null,
         }]);
 
       if (insertError) {
@@ -238,58 +214,77 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: insertError.message }, { status: 500 });
       }
 
-      return NextResponse.json({ success: true, isAdmin, usedCoupon: validCoupon });
+      return NextResponse.json({ success: true, isAdmin: true });
     }
 
-    // Invalid coupon provided
-    if (couponCode && !validCoupon) {
-      return NextResponse.json({ error: 'Invalid or expired coupon code' }, { status: 400 });
+    // Coupon path — validate & increment, then create submission
+    if (grantedCoupon) {
+      const { data: coupon } = await supabase
+        .from('coupon_codes')
+        .select('*')
+        .eq('code', grantedCoupon)
+        .eq('is_active', true)
+        .single();
+
+      if (!coupon || (coupon.max_uses !== null && coupon.current_uses >= coupon.max_uses)) {
+        return NextResponse.json({ error: 'Coupon is no longer valid' }, { status: 400 });
+      }
+
+      await supabaseAdmin
+        .from('coupon_codes')
+        .update({ current_uses: coupon.current_uses + 1 })
+        .eq('id', coupon.id);
+
+      const { error: insertError } = await supabase
+        .from('submissions')
+        .insert([{
+          ...submissionData,
+          submitted_by: user.id,
+          status: 'pending',
+          payment_amount: 0,
+          coupon_code: grantedCoupon,
+        }]);
+
+      if (insertError) {
+        console.error('Insert error:', insertError);
+        return NextResponse.json({ error: insertError.message }, { status: 500 });
+      }
+
+      return NextResponse.json({ success: true, usedCoupon: true });
     }
 
-    // Save submission with pending_payment status
-    const { data: submission, error: insertError } = await supabase
-      .from('submissions')
-      .insert([{
-        ...submissionData,
-        submitted_by: user.id,
-        status: 'pending_payment',
-        payment_amount: 5.00,
-      }])
-      .select()
-      .single();
+    // Stripe path — verify the session belongs to this user and was paid
+    if (stripeSessionId) {
+      let stripePaymentIntentId: string | null = null;
+      try {
+        const session = await stripe.checkout.sessions.retrieve(stripeSessionId);
+        if (session.payment_status !== 'paid' || session.metadata?.userId !== user.id) {
+          return NextResponse.json({ error: 'Payment not verified' }, { status: 400 });
+        }
+        stripePaymentIntentId = session.payment_intent as string;
+      } catch {
+        return NextResponse.json({ error: 'Invalid payment session' }, { status: 400 });
+      }
 
-    if (insertError) {
-      console.error('Insert error:', insertError);
-      return NextResponse.json({ error: insertError.message }, { status: 500 });
+      const { error: insertError } = await supabase
+        .from('submissions')
+        .insert([{
+          ...submissionData,
+          submitted_by: user.id,
+          status: 'pending',
+          payment_amount: 5.00,
+          stripe_payment_id: stripePaymentIntentId,
+        }]);
+
+      if (insertError) {
+        console.error('Insert error:', insertError);
+        return NextResponse.json({ error: insertError.message }, { status: 500 });
+      }
+
+      return NextResponse.json({ success: true });
     }
 
-    // Create Stripe Checkout
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      customer_email: user.email ?? undefined,
-      line_items: [
-        {
-          price_data: {
-            currency: 'usd',
-            product_data: {
-              name: 'CE Class Listing',
-              description: `Listing: ${submissionData.title.substring(0, 50)}`,
-            },
-            unit_amount: 500,
-          },
-          quantity: 1,
-        },
-      ],
-      mode: 'payment',
-      success_url: `${request.nextUrl.origin}/submit/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${request.nextUrl.origin}/submit?canceled=true`,
-      metadata: {
-        submissionId: submission.id,
-        userId: user.id,
-      },
-    });
-
-    return NextResponse.json({ sessionId: session.id, url: session.url });
+    return NextResponse.json({ error: 'Payment required' }, { status: 402 });
 
   } catch (error: unknown) {
     console.error('Checkout error:', error);

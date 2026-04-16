@@ -2,12 +2,19 @@ import { test, expect } from '@playwright/test';
 import { login, fillAllSteps, goToNextStep } from './helpers/test-utils';
 
 // ─── Shared setup ────────────────────────────────────────────────────────────
+// All form tests apply a valid coupon at the payment gate so they land on step 1.
+
+async function passThroughPaymentGate(page: Parameters<typeof login>[0]) {
+  await page.waitForSelector('input[placeholder="Enter coupon code"]', { timeout: 10000 });
+  await page.fill('input[placeholder="Enter coupon code"]', 'TESTFREE');
+  await page.click('button:has-text("Apply")');
+  await page.waitForSelector('#title', { timeout: 10000 });
+}
 
 test.beforeEach(async ({ page }) => {
   await login(page);
   await page.goto('/submit');
-  // Wait for the form to be ready
-  await page.waitForSelector('#title', { timeout: 10000 });
+  await passThroughPaymentGate(page);
 });
 
 // ─── Step 1: Basic Info ───────────────────────────────────────────────────────
@@ -171,8 +178,8 @@ test.describe('Step 4: Details', () => {
     await expect(page.locator('text=Invalid email format')).toBeVisible();
   });
 
-  test('coupon code field is visible', async ({ page }) => {
-    await expect(page.locator('#coupon_code')).toBeVisible();
+  test('coupon code field is not present on step 4 (moved to payment gate)', async ({ page }) => {
+    await expect(page.locator('#coupon_code')).not.toBeVisible();
   });
 
   test('CE credits field is optional — submit is enabled without it', async ({ page }) => {
@@ -194,32 +201,58 @@ test.describe('Step 4: Details', () => {
   });
 });
 
-// ─── Payment Flow ─────────────────────────────────────────────────────────────
+// ─── Payment Gate ─────────────────────────────────────────────────────────────
 
-test.describe('Payment Flow', () => {
-  test('submitting without a coupon redirects to Stripe checkout', async ({ page }) => {
-    await fillAllSteps(page, String(Date.now()));
-    await page.click('button:has-text("Submit for Review")');
+test.describe('Payment Gate', () => {
+  // These tests need a fresh /submit page without the gate already passed
+  test.beforeEach(async ({ page }) => {
+    // Override the shared beforeEach — navigate fresh without going through the gate
+  });
 
-    // Stripe redirect can take a moment
+  test('payment gate is shown before the form', async ({ page }) => {
+    await login(page);
+    await page.goto('/submit');
+    await expect(page.locator('text=One step before your submission')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('#title')).not.toBeVisible();
+  });
+
+  test('Pay $5 to Submit button redirects to Stripe checkout', async ({ page }) => {
+    await login(page);
+    await page.goto('/submit');
+    await page.waitForSelector('button:has-text("Pay $5 to Submit")', { timeout: 10000 });
+    await page.click('button:has-text("Pay $5 to Submit")');
     await page.waitForURL(/checkout\.stripe\.com/, { timeout: 20000 });
   });
 
-  test('submitting with a valid coupon goes to success page (no Stripe)', async ({ page }) => {
-    await fillAllSteps(page, String(Date.now()));
-    await page.fill('#coupon_code', 'TESTFREE');
-    await page.click('button:has-text("Submit for Review")');
-
-    await page.waitForURL(/\/submit\/success/, { timeout: 15000 });
+  test('valid coupon bypasses payment and shows the form', async ({ page }) => {
+    await login(page);
+    await page.goto('/submit');
+    await page.waitForSelector('input[placeholder="Enter coupon code"]', { timeout: 10000 });
+    await page.fill('input[placeholder="Enter coupon code"]', 'TESTFREE');
+    await page.click('button:has-text("Apply")');
+    await page.waitForSelector('#title', { timeout: 10000 });
+    await expect(page.locator('#title')).toBeVisible();
   });
 
-  test('submitting with an invalid coupon shows an error', async ({ page }) => {
-    await fillAllSteps(page, String(Date.now()));
-    await page.fill('#coupon_code', 'INVALIDCODE999');
-    await page.click('button:has-text("Submit for Review")');
-
+  test('invalid coupon shows an error and keeps the gate visible', async ({ page }) => {
+    await login(page);
+    await page.goto('/submit');
+    await page.waitForSelector('input[placeholder="Enter coupon code"]', { timeout: 10000 });
+    await page.fill('input[placeholder="Enter coupon code"]', 'INVALIDCODE999');
+    await page.click('button:has-text("Apply")');
     await expect(
       page.locator('text=Invalid').or(page.locator('text=invalid')).or(page.locator('text=expired'))
     ).toBeVisible({ timeout: 10000 });
+    // Form must NOT be visible
+    await expect(page.locator('#title')).not.toBeVisible();
+  });
+
+  test('completing form after valid coupon submits successfully', async ({ page }) => {
+    await login(page);
+    await page.goto('/submit');
+    await passThroughPaymentGate(page);
+    await fillAllSteps(page, String(Date.now()));
+    await page.click('button:has-text("Submit for Review")');
+    await page.waitForURL(/\/submit\/success/, { timeout: 15000 });
   });
 });

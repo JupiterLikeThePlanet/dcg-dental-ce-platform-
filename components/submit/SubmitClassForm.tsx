@@ -8,6 +8,10 @@ import Spinner from '@/components/ui/Spinner';
 interface SubmitClassFormProps {
   userId: string;
   userEmail: string;
+  /** Verified Stripe session ID from the payment gate (new submissions only). */
+  stripeSessionId?: string | null;
+  /** Coupon code validated at the payment gate (new submissions only). */
+  grantedCoupon?: string | null;
 }
 
 interface FormData {
@@ -41,7 +45,6 @@ interface FormData {
   ce_credits: string;
   registration_url: string;
   image_url: string;
-  coupon_code: string;
 }
 
 const initialFormData: FormData = {
@@ -66,7 +69,6 @@ const initialFormData: FormData = {
   ce_credits: '',
   registration_url: '',
   image_url: '',
-  coupon_code: ''
 };
 
 const categories = [
@@ -98,7 +100,7 @@ const states = [
   'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY',
 ];
 
-export default function SubmitClassForm({ userId, userEmail }: SubmitClassFormProps) {
+export default function SubmitClassForm({ userId, userEmail, stripeSessionId, grantedCoupon }: SubmitClassFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = createClient();
@@ -128,7 +130,7 @@ export default function SubmitClassForm({ userId, userEmail }: SubmitClassFormPr
       if (templateData) {
         try {
           const parsed = JSON.parse(templateData);
-          setFormData({ ...initialFormData, ...parsed, coupon_code: '' });
+          setFormData({ ...initialFormData, ...parsed });
           setIsTemplate(true);
           // Clear the sessionStorage after loading
           sessionStorage.removeItem('submissionTemplate');
@@ -142,7 +144,7 @@ export default function SubmitClassForm({ userId, userEmail }: SubmitClassFormPr
         try {
           const parsed = JSON.parse(editData);
           const { originalId, classOnly, ...formFields } = parsed;
-          setFormData({ ...initialFormData, ...formFields, coupon_code: '' });
+          setFormData({ ...initialFormData, ...formFields });
           setIsEdit(true);
           setOriginalSubmissionId(originalId);
           if (classOnly) setIsClassOnly(true);
@@ -282,7 +284,10 @@ export default function SubmitClassForm({ userId, userEmail }: SubmitClassFormPr
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           submissionData,
-          couponCode: formData.coupon_code.trim().toUpperCase() || null,
+          // Payment proof for new submissions (one of these will be set)
+          stripeSessionId: !isEdit ? (stripeSessionId ?? null) : null,
+          grantedCoupon: !isEdit ? (grantedCoupon ?? null) : null,
+          // Edit mode fields
           originalSubmissionId: isEdit ? originalSubmissionId : null,
           editClassOnly: isEdit && isClassOnly,
         }),
@@ -294,25 +299,21 @@ export default function SubmitClassForm({ userId, userEmail }: SubmitClassFormPr
         throw new Error(data.error || 'Failed to process submission');
       }
 
-      // Any edit: navigate directly to the submission detail so changes are immediately visible
+      // Any edit: navigate directly to the submission detail
       if (data.success && data.isEdit) {
         router.refresh();
         router.push(`/dashboard/submissions/${originalSubmissionId}`);
         return;
       }
 
-      // If admin or coupon used, redirect to success
-      if (data.success && (data.isAdmin || data.usedCoupon)) {
-        router.push('/submit/success?method=' + (data.isAdmin ? 'admin' : 'coupon'));
+      // New submission: all payment paths complete server-side, go to success page
+      if (data.success) {
+        const method = data.isAdmin ? 'admin' : data.usedCoupon ? 'coupon' : '';
+        router.push('/submit/success' + (method ? `?method=${method}` : ''));
         return;
       }
 
-      // Otherwise, redirect to Stripe Checkout
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        throw new Error('No checkout URL received');
-      }
+      throw new Error('Unexpected response from server');
 
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';
@@ -798,24 +799,6 @@ export default function SubmitClassForm({ userId, userEmail }: SubmitClassFormPr
         <p className="text-gray-500 text-sm mt-1">Leave blank to use a default dental image</p>
       </div>
 
-      {/* Coupon Code — hidden in class-only edit mode */}
-      {!isClassOnly && (
-        <div>
-          <label htmlFor="coupon_code" className="block text-sm font-medium text-gray-700 mb-1">
-            Coupon Code <span className="text-gray-400 text-xs">(optional)</span>
-          </label>
-          <input
-            type="text"
-            id="coupon_code"
-            name="coupon_code"
-            value={formData.coupon_code}
-            onChange={handleChange}
-            placeholder="Enter coupon code if you have one"
-            className="w-full px-4 py-2 border border-gray-300 rounded-sm focus:outline-none focus:border-blue-500 uppercase"
-          />
-          <p className="text-gray-500 text-sm mt-1">Have a coupon? Enter it to waive the $5 fee</p>
-        </div>
-      )}
     </div>
   );
 
@@ -904,9 +887,7 @@ export default function SubmitClassForm({ userId, userEmail }: SubmitClassFormPr
       <p className="text-center text-gray-500 text-sm mt-6">
         {isClassOnly
           ? 'Saving class details only — complete payment from your dashboard'
-          : isEdit
-          ? 'Resubmitting a rejected class is free • Questions? Contact support@dcgdental.com'
-          : 'Submission fee: $5 (paid after review) • Questions? Contact support@dcgdental.com'
+          : 'Questions? Contact support@dcgdental.com'
         }
       </p>
     </form>

@@ -27,7 +27,7 @@ export default function CanceledNotice() {
   return (
     <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-sm p-4 flex justify-between items-center">
       <p className="text-yellow-800">
-        Payment was canceled. Your submission has been removed. Please try again when ready.
+        Payment was canceled. Please try again when you&apos;re ready.
       </p>
       <button 
         onClick={handleDismiss}

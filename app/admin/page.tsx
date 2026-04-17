@@ -185,8 +185,8 @@ export default async function AdminPage({ searchParams }: PageProps) {
             </p>
           </div>
           <Link href="/dashboard" className="bg-blue-50 px-4 py-2 rounded-lg border border-blue-100 hover:bg-blue-100 transition-colors block text-right">
-            <span className="text-xs font-bold text-blue-600 uppercase tracking-wider block">User</span>
-            <span className="text-sm font-semibold text-gray-800">My Dashboard View</span>
+            <span className="text-xs font-bold text-blue-600 uppercase tracking-wider block">User View</span>
+            <span className="text-sm font-semibold text-gray-800">My Dashboard</span>
           </Link>
         </div>
       </div>

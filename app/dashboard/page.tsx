@@ -66,8 +66,8 @@ export default async function DashboardPage() {
             {/* Admin Dashboard Link - Only for admins */}
             {isAdmin && (
               <Link href="/admin" className="bg-orange-50 px-4 py-2 rounded-lg border border-orange-200 hover:bg-orange-100 transition-colors block">
-                <span className="text-xs font-bold text-orange-600 uppercase tracking-wider block">Admin</span>
-                <span className="text-sm font-semibold text-gray-800">Admin Dashboard View</span>
+                <span className="text-xs font-bold text-orange-600 uppercase tracking-wider block">Admin View</span>
+                <span className="text-sm font-semibold text-gray-800">My Dashboard</span>
               </Link>
             )}
             <div className="bg-blue-50 px-4 py-2 rounded-lg border border-blue-100">

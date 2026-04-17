@@ -36,11 +36,17 @@ export default async function DashboardPage() {
 
   const isAdmin = userData?.is_admin || false;
 
-  // Fetch user's submissions
+  // One year ago date — approved submissions with end_date before this are hidden and due for deletion
+  const oneYearAgo = new Date();
+  oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+  const oneYearAgoStr = oneYearAgo.toISOString().split('T')[0];
+
+  // Fetch user's submissions, excluding approved ones past the 1-year retention window
   const { data: submissions } = await supabase
     .from('submissions')
-    .select('id, title, provider_name, city, state, start_date, status, created_at, rejection_reason')
+    .select('id, title, provider_name, city, state, start_date, end_date, status, created_at, rejection_reason')
     .eq('submitted_by', user.id)
+    .or(`status.neq.approved,end_date.is.null,end_date.gte.${oneYearAgoStr}`)
     .order('created_at', { ascending: false });
 
   // Calculate stats

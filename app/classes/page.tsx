@@ -53,6 +53,9 @@ export default async function ClassesPage({ searchParams }: PageProps) {
   // Get the database column name
   const sortColumn = sortColumnMap[validSort];
 
+  // Today's date string (YYYY-MM-DD) — classes with end_date before this are hidden
+  const today = new Date().toISOString().split('T')[0];
+
   // Create Supabase client for Server Component
   const cookieStore = await cookies();
   const supabase = createServerClient(
@@ -73,6 +76,7 @@ export default async function ClassesPage({ searchParams }: PageProps) {
     .select('state')
     .eq('status', 'approved')
     .is('deleted_at', null)
+    .or(`end_date.is.null,end_date.gte.${today}`)
     .not('state', 'is', null);
 
   // Extract unique states and sort alphabetically
@@ -84,6 +88,7 @@ export default async function ClassesPage({ searchParams }: PageProps) {
     .select('category')
     .eq('status', 'approved')
     .is('deleted_at', null)
+    .or(`end_date.is.null,end_date.gte.${today}`)
     .not('category', 'is', null);
   
   // Extract unique categories and sort alphabetically
@@ -94,7 +99,8 @@ export default async function ClassesPage({ searchParams }: PageProps) {
     .from('classes')
     .select('*', { count: 'exact', head: true })
     .eq('status', 'approved')
-    .is('deleted_at', null);
+    .is('deleted_at', null)
+    .or(`end_date.is.null,end_date.gte.${today}`);
 
   // Apply search filter to count query
   if (searchQuery) {
@@ -147,7 +153,8 @@ export default async function ClassesPage({ searchParams }: PageProps) {
     .from('classes')
     .select('*')
     .eq('status', 'approved')
-    .is('deleted_at', null);
+    .is('deleted_at', null)
+    .or(`end_date.is.null,end_date.gte.${today}`);
 
   // Apply search filter to main query
   if (searchQuery) {

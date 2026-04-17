@@ -139,8 +139,8 @@ export default function UserSubmissionsTable({ submissions }: UserSubmissionsTab
     <div className="space-y-4">
       {/* Filter & Sort Controls */}
       <div className="flex flex-col sm:flex-row gap-3 justify-between items-start sm:items-center">
-        {/* Status Filter Tabs */}
-        <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
+        {/* Desktop: Status Filter Tabs */}
+        <div className="hidden sm:flex gap-1 bg-gray-100 p-1 rounded-lg">
           {[
             { key: 'all', label: 'All' },
             { key: 'pending', label: 'Pending' },
@@ -166,6 +166,21 @@ export default function UserSubmissionsTable({ submissions }: UserSubmissionsTab
           ))}
         </div>
 
+        {/* Mobile: Filter Dropdown */}
+        <div className="sm:hidden flex items-center gap-6">
+          <span className="text-sm text-gray-500">Filter:</span>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+            className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="all">All ({counts.all})</option>
+            <option value="pending">Pending ({counts.pending})</option>
+            <option value="approved">Approved ({counts.approved})</option>
+            <option value="rejected">Rejected ({counts.rejected})</option>
+          </select>
+        </div>
+
         {/* Sort Dropdown */}
         <div className="flex items-center gap-2">
           <span className="text-sm text-gray-500">Sort by:</span>
@@ -186,14 +201,6 @@ export default function UserSubmissionsTable({ submissions }: UserSubmissionsTab
             <option value="title-desc">Title (Z-A)</option>
           </select>
         </div>
-      </div>
-
-      {/* Scroll Hint for Mobile */}
-      <div className="sm:hidden flex items-center justify-end gap-1 text-xs text-gray-400">
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-        </svg>
-        Scroll horizontally to see more
       </div>
 
       {/* Table */}

@@ -2,8 +2,8 @@ import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import SubmissionsTable from '@/components/admin/SubmissionsTable';
 import AdminToast from '@/components/admin/AdminToast';
+import AdminTabView from '@/components/admin/AdminTabView';
 
 export const dynamic = 'force-dynamic';
 
@@ -178,22 +178,15 @@ export default async function AdminPage({ searchParams }: PageProps) {
           <div>
             <div className="flex items-center gap-3 mb-2">
               <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-              <span className="px-2 py-1 bg-orange-100 text-orange-700 text-xs font-medium rounded">
-                Admin
-              </span>
+  
             </div>
             <p className="text-gray-600">
               Welcome back, {userData.full_name || user.email}. Manage class submissions below.
             </p>
           </div>
-          <Link
-            href="/dashboard"
-            className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1 transition-colors"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-              <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" />
-            </svg>
-            My Dashboard
+          <Link href="/dashboard" className="bg-blue-50 px-4 py-2 rounded-lg border border-blue-100 hover:bg-blue-100 transition-colors block text-right">
+            <span className="text-xs font-bold text-blue-600 uppercase tracking-wider block">User View</span>
+            <span className="text-sm font-semibold text-gray-800">My Dashboard</span>
           </Link>
         </div>
       </div>
@@ -217,46 +210,7 @@ export default async function AdminPage({ searchParams }: PageProps) {
         ))}
       </div>
 
-      {/* Status Tabs */}
-      <div className="border-b border-gray-200 mb-6">
-        <nav className="flex gap-4">
-          {statusTabs.map((tab) => {
-            const isActive = statusFilter === tab.key;
-            return (
-              <Link
-                key={tab.key}
-                href={`/admin?status=${tab.key}`}
-                className={`px-4 py-3 text-sm font-medium border-b-2 -mb-px transition-all duration-200 ${
-                  isActive
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                {tab.label}
-                <span
-                  className={`ml-2 px-2 py-0.5 rounded-full text-xs transition-colors ${
-                    isActive
-                      ? 'bg-blue-100 text-blue-600'
-                      : 'bg-gray-100 text-gray-600'
-                  }`}
-                >
-                  {tab.count}
-                </span>
-              </Link>
-            );
-          })}
-        </nav>
-      </div>
-
-      {/* Error State */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-sm p-4 mb-6">
-          <p className="text-red-700">Error loading submissions: {error.message}</p>
-        </div>
-      )}
-
-      {/* Submissions Table */}
-      <SubmissionsTable
+      <AdminTabView
         submissions={(submissions as any[]) || []}
         emptyMessage={
           statusFilter === 'pending'
@@ -267,12 +221,10 @@ export default async function AdminPage({ searchParams }: PageProps) {
             ? 'No rejected submissions.'
             : 'No submissions found.'
         }
+        statusTabs={statusTabs}
+        statusFilter={statusFilter}
+        error={error?.message ?? null}
       />
-
-      {/* Help Text */}
-      <p className="text-center text-gray-500 text-sm mt-6">
-        Click on any row to view full submission details and approve or reject.
-      </p>
     </div>
   );
 }

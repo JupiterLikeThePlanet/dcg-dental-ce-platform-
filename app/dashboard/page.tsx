@@ -65,14 +65,9 @@ export default async function DashboardPage() {
           <div className="flex items-center gap-3">
             {/* Admin Dashboard Link - Only for admins */}
             {isAdmin && (
-              <Link
-                href="/admin"
-                className="px-4 py-2 bg-orange-100 text-orange-700 text-sm font-semibold rounded-lg border border-orange-200 hover:bg-orange-200 transition-colors flex items-center gap-2"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clipRule="evenodd" />
-                </svg>
-                Admin Dashboard
+              <Link href="/admin" className="bg-orange-50 px-4 py-2 rounded-lg border border-orange-200 hover:bg-orange-100 transition-colors block">
+                <span className="text-xs font-bold text-orange-600 uppercase tracking-wider block">Admin View</span>
+                <span className="text-sm font-semibold text-gray-800">My Dashboard</span>
               </Link>
             )}
             <div className="bg-blue-50 px-4 py-2 rounded-lg border border-blue-100">

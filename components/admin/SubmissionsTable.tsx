@@ -56,7 +56,43 @@ export default function SubmissionsTable({
   };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-sm overflow-hidden">
+    <div>
+      {/* Mobile: card layout */}
+      <div className="sm:hidden space-y-3">
+        {submissions.map((submission) => (
+          <Link
+            key={submission.id}
+            href={`/admin/submissions/${submission.id}`}
+            className="block bg-white border border-gray-200 rounded-xl p-4 hover:border-blue-300 hover:shadow-sm active:bg-gray-50 transition-all"
+          >
+            <div className="flex justify-between items-start mb-1.5">
+              <p className="font-medium text-blue-600 text-sm leading-snug flex-1 mr-3">
+                {submission.title}
+              </p>
+              <StatusBadge status={submission.status} />
+            </div>
+            <p className="text-xs text-gray-500 mb-2">{submission.provider_name}</p>
+            <div className="flex justify-between items-center text-xs text-gray-400 mb-1.5">
+              <span>{submission.city}, {submission.state} · {formatDate(submission.start_date)}</span>
+              <span>{submission.users?.full_name || submission.users?.email?.split('@')[0] || 'Unknown'}</span>
+            </div>
+            {(submission.coupon_code || submission.payment_amount != null) && (
+              <div className="text-xs">
+                {submission.coupon_code ? (
+                  <span className="text-purple-600">Coupon: {submission.coupon_code}</span>
+                ) : submission.payment_amount === 0 ? (
+                  <span className="text-gray-500">Admin (Free)</span>
+                ) : (
+                  <span className="text-green-600">${submission.payment_amount!.toFixed(2)}</span>
+                )}
+              </div>
+            )}
+          </Link>
+        ))}
+      </div>
+
+      {/* Desktop: table */}
+      <div className="hidden sm:block bg-white border border-gray-200 rounded-sm overflow-hidden">
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
@@ -150,6 +186,7 @@ export default function SubmissionsTable({
           </tbody>
         </table>
       </div>
+    </div>
     </div>
   );
 }

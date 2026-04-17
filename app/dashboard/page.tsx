@@ -70,7 +70,7 @@ export default async function DashboardPage() {
                 <span className="text-sm font-semibold text-gray-800">My Dashboard</span>
               </Link>
             )}
-            <div className="bg-blue-50 px-4 py-2 rounded-lg border border-blue-100">
+            <div className="hidden sm:block bg-blue-50 px-4 py-2 rounded-lg border border-blue-100">
               <span className="text-xs font-bold text-blue-600 uppercase tracking-wider block">Logged in as</span>
               <span className="text-sm font-semibold text-gray-800">{user.email}</span>
             </div>

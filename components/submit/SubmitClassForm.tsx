@@ -345,7 +345,7 @@ export default function SubmitClassForm({ userId, userEmail, stripeSessionId, gr
               ) : (
                 <>
                   <span className="font-medium">Edit & Resubmit Mode</span>
-                  <span className="text-sm">— Make your changes and submit again</span>
+                  <span className="hidden sm:inline text-sm">— Make your changes and submit again</span>
                 </>
               )}
             </>

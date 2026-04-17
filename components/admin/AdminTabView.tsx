@@ -60,9 +60,9 @@ export default function AdminTabView({ submissions, emptyMessage, statusTabs, st
   return (
     <>
       {/* Toolbar: status filter tabs (left) + view toggle (right), sharing one border-b */}
-      <div className="flex items-end justify-between border-b border-gray-200 mb-6">
+      <div className="flex items-end justify-between border-b border-gray-200 mb-6 overflow-x-auto">
         {/* Left: status filter tabs — only shown in submissions view */}
-        <nav className="flex gap-4">
+        <nav className="flex gap-4 min-w-max">
           {displayedTab === 'submissions' ? (
             statusTabs.map((tab) => {
               const isActive = statusFilter === tab.key;

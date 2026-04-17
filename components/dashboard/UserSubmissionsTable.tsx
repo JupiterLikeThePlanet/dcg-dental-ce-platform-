@@ -203,8 +203,35 @@ export default function UserSubmissionsTable({ submissions }: UserSubmissionsTab
         </div>
       </div>
 
-      {/* Table */}
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+      {/* Mobile: card layout */}
+      <div className="sm:hidden space-y-3">
+        {filteredAndSortedSubmissions.length === 0 ? (
+          <p className="text-center text-gray-500 py-8 text-sm">No submissions match this filter.</p>
+        ) : (
+          filteredAndSortedSubmissions.map((submission) => (
+            <div
+              key={submission.id}
+              onClick={() => handleRowClick(submission.id)}
+              className="bg-white border border-gray-200 rounded-xl p-4 cursor-pointer hover:border-blue-300 hover:shadow-sm active:bg-gray-50 transition-all"
+            >
+              <div className="flex justify-between items-start mb-1.5">
+                <p className="font-medium text-gray-900 text-sm leading-snug flex-1 mr-3">
+                  {submission.title}
+                </p>
+                <StatusBadge status={submission.status} />
+              </div>
+              <p className="text-xs text-gray-500 mb-3">{submission.provider_name}</p>
+              <div className="flex justify-between items-center text-xs text-gray-400">
+                <span>{submission.city}, {submission.state}</span>
+                <span>{formatDate(submission.start_date)}</span>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Desktop: table */}
+      <div className="hidden sm:block bg-white border border-gray-200 rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">

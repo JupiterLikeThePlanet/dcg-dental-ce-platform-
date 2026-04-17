@@ -180,7 +180,7 @@ export default async function AdminPage({ searchParams }: PageProps) {
               <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
   
             </div>
-            <p className="text-gray-600">
+            <p className="hidden sm:block text-gray-600">
               Welcome back, {userData.full_name || user.email}. Manage class submissions below.
             </p>
           </div>

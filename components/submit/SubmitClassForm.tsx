@@ -345,7 +345,7 @@ export default function SubmitClassForm({ userId, userEmail, stripeSessionId, gr
               ) : (
                 <>
                   <span className="font-medium">Edit & Resubmit Mode</span>
-                  <span className="text-sm">— Make your changes and submit again</span>
+                  <span className="hidden sm:inline text-sm">— Make your changes and submit again</span>
                 </>
               )}
             </>
@@ -412,7 +412,7 @@ export default function SubmitClassForm({ userId, userEmail, stripeSessionId, gr
           onChange={handleChange}
           placeholder="Introduction to Dental Implants"
           maxLength={100}
-          className={`w-full px-4 py-2 border rounded-sm focus:outline-none focus:border-blue-500 ${
+          className={`w-full px-4 py-3 sm:py-2 text-base border rounded-sm focus:outline-none focus:border-blue-500 ${
             errors.title ? 'border-red-500' : 'border-gray-300'
           }`}
         />
@@ -432,7 +432,7 @@ export default function SubmitClassForm({ userId, userEmail, stripeSessionId, gr
           rows={4}
           placeholder="Describe what attendees will learn..."
           maxLength={1000}
-          className={`w-full px-4 py-2 border rounded-sm focus:outline-none focus:border-blue-500 ${
+          className={`w-full px-4 py-3 sm:py-2 text-base border rounded-sm focus:outline-none focus:border-blue-500 ${
             errors.description ? 'border-red-500' : 'border-gray-300'
           }`}
         />
@@ -449,7 +449,7 @@ export default function SubmitClassForm({ userId, userEmail, stripeSessionId, gr
           name="category"
           value={formData.category}
           onChange={handleChange}
-          className={`w-full px-4 py-2 border rounded-sm focus:outline-none focus:border-blue-500 ${
+          className={`w-full px-4 py-3 sm:py-2 text-base border rounded-sm focus:outline-none focus:border-blue-500 ${
             errors.category ? 'border-red-500' : 'border-gray-300'
           }`}
         >
@@ -479,7 +479,7 @@ export default function SubmitClassForm({ userId, userEmail, stripeSessionId, gr
             name="start_date"
             value={formData.start_date}
             onChange={handleChange}
-            className={`w-full px-4 py-2 border rounded-sm focus:outline-none focus:border-blue-500 ${
+            className={`w-full px-4 py-3 sm:py-2 text-base border rounded-sm focus:outline-none focus:border-blue-500 ${
               errors.start_date ? 'border-red-500' : 'border-gray-300'
             }`}
           />
@@ -496,7 +496,7 @@ export default function SubmitClassForm({ userId, userEmail, stripeSessionId, gr
             name="end_date"
             value={formData.end_date}
             onChange={handleChange}
-            className={`w-full px-4 py-2 border rounded-sm focus:outline-none focus:border-blue-500 ${
+            className={`w-full px-4 py-3 sm:py-2 text-base border rounded-sm focus:outline-none focus:border-blue-500 ${
               errors.end_date ? 'border-red-500' : 'border-gray-300'
             }`}
           />
@@ -515,7 +515,7 @@ export default function SubmitClassForm({ userId, userEmail, stripeSessionId, gr
             name="start_time"
             value={formData.start_time}
             onChange={handleChange}
-            className={`w-full px-4 py-2 border rounded-sm focus:outline-none focus:border-blue-500 ${
+            className={`w-full px-4 py-3 sm:py-2 text-base border rounded-sm focus:outline-none focus:border-blue-500 ${
               errors.start_time ? 'border-red-500' : 'border-gray-300'
             }`}
           />
@@ -532,7 +532,7 @@ export default function SubmitClassForm({ userId, userEmail, stripeSessionId, gr
             name="end_time"
             value={formData.end_time}
             onChange={handleChange}
-            className={`w-full px-4 py-2 border rounded-sm focus:outline-none focus:border-blue-500 ${
+            className={`w-full px-4 py-3 sm:py-2 text-base border rounded-sm focus:outline-none focus:border-blue-500 ${
               errors.end_time ? 'border-red-500' : 'border-gray-300'
             }`}
           />
@@ -558,7 +558,7 @@ export default function SubmitClassForm({ userId, userEmail, stripeSessionId, gr
           value={formData.address_line1}
           onChange={handleChange}
           placeholder="123 Main Street"
-          className={`w-full px-4 py-2 border rounded-sm focus:outline-none focus:border-blue-500 ${
+          className={`w-full px-4 py-3 sm:py-2 text-base border rounded-sm focus:outline-none focus:border-blue-500 ${
             errors.address_line1 ? 'border-red-500' : 'border-gray-300'
           }`}
         />
@@ -576,7 +576,7 @@ export default function SubmitClassForm({ userId, userEmail, stripeSessionId, gr
           value={formData.address_line2}
           onChange={handleChange}
           placeholder="Suite 100"
-          className="w-full px-4 py-2 border border-gray-300 rounded-sm focus:outline-none focus:border-blue-500"
+          className="w-full px-4 py-3 sm:py-2 text-base border border-gray-300 rounded-sm focus:outline-none focus:border-blue-500"
         />
       </div>
 
@@ -592,7 +592,7 @@ export default function SubmitClassForm({ userId, userEmail, stripeSessionId, gr
             value={formData.city}
             onChange={handleChange}
             placeholder="New Orleans"
-            className={`w-full px-4 py-2 border rounded-sm focus:outline-none focus:border-blue-500 ${
+            className={`w-full px-4 py-3 sm:py-2 text-base border rounded-sm focus:outline-none focus:border-blue-500 ${
               errors.city ? 'border-red-500' : 'border-gray-300'
             }`}
           />
@@ -608,7 +608,7 @@ export default function SubmitClassForm({ userId, userEmail, stripeSessionId, gr
             name="state"
             value={formData.state}
             onChange={handleChange}
-            className={`w-full px-4 py-2 border rounded-sm focus:outline-none focus:border-blue-500 ${
+            className={`w-full px-4 py-3 sm:py-2 text-base border rounded-sm focus:outline-none focus:border-blue-500 ${
               errors.state ? 'border-red-500' : 'border-gray-300'
             }`}
           >
@@ -630,7 +630,7 @@ export default function SubmitClassForm({ userId, userEmail, stripeSessionId, gr
             value={formData.zip_code}
             onChange={handleChange}
             placeholder="70112"
-            className={`w-full px-4 py-2 border rounded-sm focus:outline-none focus:border-blue-500 ${
+            className={`w-full px-4 py-3 sm:py-2 text-base border rounded-sm focus:outline-none focus:border-blue-500 ${
               errors.zip_code ? 'border-red-500' : 'border-gray-300'
             }`}
           />
@@ -658,7 +658,7 @@ export default function SubmitClassForm({ userId, userEmail, stripeSessionId, gr
             value={formData.instructor_name}
             onChange={handleChange}
             placeholder="Dr. Jane Smith"
-            className={`w-full px-4 py-2 border rounded-sm focus:outline-none focus:border-blue-500 ${
+            className={`w-full px-4 py-3 sm:py-2 text-base border rounded-sm focus:outline-none focus:border-blue-500 ${
               errors.instructor_name ? 'border-red-500' : 'border-gray-300'
             }`}
           />
@@ -676,7 +676,7 @@ export default function SubmitClassForm({ userId, userEmail, stripeSessionId, gr
             value={formData.provider_name}
             onChange={handleChange}
             placeholder="Louisiana Dental Association"
-            className={`w-full px-4 py-2 border rounded-sm focus:outline-none focus:border-blue-500 ${
+            className={`w-full px-4 py-3 sm:py-2 text-base border rounded-sm focus:outline-none focus:border-blue-500 ${
               errors.provider_name ? 'border-red-500' : 'border-gray-300'
             }`}
           />
@@ -697,7 +697,7 @@ export default function SubmitClassForm({ userId, userEmail, stripeSessionId, gr
             value={formData.contact_email}
             onChange={handleChange}
             placeholder="contact@example.com"
-            className={`w-full px-4 py-2 border rounded-sm focus:outline-none focus:border-blue-500 ${
+            className={`w-full px-4 py-3 sm:py-2 text-base border rounded-sm focus:outline-none focus:border-blue-500 ${
               errors.contact_email ? 'border-red-500' : 'border-gray-300'
             }`}
           />
@@ -715,7 +715,7 @@ export default function SubmitClassForm({ userId, userEmail, stripeSessionId, gr
             value={formData.contact_phone}
             onChange={handleChange}
             placeholder="(555) 123-4567"
-            className="w-full px-4 py-2 border border-gray-300 rounded-sm focus:outline-none focus:border-blue-500"
+            className="w-full px-4 py-3 sm:py-2 text-base border border-gray-300 rounded-sm focus:outline-none focus:border-blue-500"
           />
         </div>
       </div>
@@ -735,7 +735,7 @@ export default function SubmitClassForm({ userId, userEmail, stripeSessionId, gr
             min="0"
             step="0.01"
             placeholder="299.00"
-            className={`w-full px-4 py-2 border rounded-sm focus:outline-none focus:border-blue-500 ${
+            className={`w-full px-4 py-3 sm:py-2 text-base border rounded-sm focus:outline-none focus:border-blue-500 ${
               errors.price ? 'border-red-500' : 'border-gray-300'
             }`}
           />
@@ -754,7 +754,7 @@ export default function SubmitClassForm({ userId, userEmail, stripeSessionId, gr
             onChange={handleChange}
             min="0"
             placeholder="8"
-            className={`w-full px-4 py-2 border rounded-sm focus:outline-none focus:border-blue-500 ${
+            className={`w-full px-4 py-3 sm:py-2 text-base border rounded-sm focus:outline-none focus:border-blue-500 ${
               errors.ce_credits ? 'border-red-500' : 'border-gray-300'
             }`}
           />
@@ -774,7 +774,7 @@ export default function SubmitClassForm({ userId, userEmail, stripeSessionId, gr
           value={formData.registration_url}
           onChange={handleChange}
           placeholder="https://example.com/register"
-          className={`w-full px-4 py-2 border rounded-sm focus:outline-none focus:border-blue-500 ${
+          className={`w-full px-4 py-3 sm:py-2 text-base border rounded-sm focus:outline-none focus:border-blue-500 ${
             errors.registration_url ? 'border-red-500' : 'border-gray-300'
           }`}
         />
@@ -794,7 +794,7 @@ export default function SubmitClassForm({ userId, userEmail, stripeSessionId, gr
           value={formData.image_url}
           onChange={handleChange}
           placeholder="https://example.com/image.jpg"
-          className="w-full px-4 py-2 border border-gray-300 rounded-sm focus:outline-none focus:border-blue-500"
+          className="w-full px-4 py-3 sm:py-2 text-base border border-gray-300 rounded-sm focus:outline-none focus:border-blue-500"
         />
         <p className="text-gray-500 text-sm mt-1">Leave blank to use a default dental image</p>
       </div>
@@ -828,7 +828,7 @@ export default function SubmitClassForm({ userId, userEmail, stripeSessionId, gr
           type="button"
           onClick={handleBack}
           disabled={currentStep === 1 || isNavigating || isSubmitting}
-          className={`px-6 py-2 rounded-sm font-medium flex items-center gap-2 ${
+          className={`px-6 py-3 sm:py-2 rounded-sm font-medium flex items-center gap-2 ${
             currentStep === 1 || isNavigating || isSubmitting
               ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
               : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
@@ -842,7 +842,7 @@ export default function SubmitClassForm({ userId, userEmail, stripeSessionId, gr
             type="button"
             onClick={handleNext}
             disabled={isNavigating}
-            className={`px-6 py-2 rounded-sm font-medium flex items-center gap-2 ${
+            className={`px-6 py-3 sm:py-2 rounded-sm font-medium flex items-center gap-2 ${
               isNavigating
                 ? 'bg-blue-400 cursor-not-allowed'
                 : 'bg-blue-600 hover:bg-blue-700'

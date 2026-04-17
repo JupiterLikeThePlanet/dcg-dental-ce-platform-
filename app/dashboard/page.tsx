@@ -63,17 +63,28 @@ export default async function DashboardPage() {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            {/* Admin Dashboard Link - Only for admins */}
+            {/* Desktop: Admin View box */}
             {isAdmin && (
-              <Link href="/admin" className="bg-orange-50 px-4 py-2 rounded-lg border border-orange-200 hover:bg-orange-100 transition-colors block">
+              <Link href="/admin" className="hidden sm:block bg-orange-50 px-4 py-2 rounded-lg border border-orange-200 hover:bg-orange-100 transition-colors">
                 <span className="text-xs font-bold text-orange-600 uppercase tracking-wider block">Admin View</span>
                 <span className="text-sm font-semibold text-gray-800">My Dashboard</span>
               </Link>
             )}
-            <div className="bg-blue-50 px-4 py-2 rounded-lg border border-blue-100">
+            <div className="hidden sm:block bg-blue-50 px-4 py-2 rounded-lg border border-blue-100">
               <span className="text-xs font-bold text-blue-600 uppercase tracking-wider block">Logged in as</span>
               <span className="text-sm font-semibold text-gray-800">{user.email}</span>
             </div>
+            {/* Mobile: simple tab toggle — only shown for admins */}
+            {isAdmin && (
+              <div className="sm:hidden flex rounded-lg border border-gray-200 overflow-hidden text-sm font-medium">
+                <Link href="/admin" className="px-3 py-1.5 text-gray-600 hover:bg-gray-50 transition-colors">
+                  Admin View
+                </Link>
+                <span className="px-3 py-1.5 text-blue-600 bg-blue-50 border-l border-gray-200">
+                  My Dashboard
+                </span>
+              </div>
+            )}
           </div>
         </div>
 

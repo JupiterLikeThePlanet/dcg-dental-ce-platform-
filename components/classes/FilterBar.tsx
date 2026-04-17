@@ -21,8 +21,8 @@ export default function FilterBar({
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Local state for search input (to enable typing without immediate URL updates)
   const [searchInput, setSearchInput] = useState(currentSearch);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   // Sync local state with URL params
   useEffect(() => {
@@ -92,9 +92,8 @@ export default function FilterBar({
 
   return (
     <div className="mb-6 space-y-4">
-      {/* Search and Filter Row */}
-      <div className="flex flex-col lg:flex-row gap-4">
-        {/* Search Input */}
+      {/* Search row — always visible */}
+      <div className="flex gap-2">
         <form onSubmit={handleSearchSubmit} className="flex-1">
           <div className="flex">
             <input
@@ -113,6 +112,25 @@ export default function FilterBar({
           </div>
         </form>
 
+        {/* Mobile-only Filters toggle */}
+        <button
+          type="button"
+          className="sm:hidden flex items-center gap-1.5 px-3 py-2 border border-gray-300 rounded-sm text-sm text-gray-700 hover:bg-gray-50 transition-colors whitespace-nowrap"
+          onClick={() => setFiltersOpen(prev => !prev)}
+          aria-expanded={filtersOpen}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z" />
+          </svg>
+          Filters
+          {(currentCategory || currentState) && (
+            <span className="w-2 h-2 rounded-full bg-blue-500" />
+          )}
+        </button>
+      </div>
+
+      {/* Filter dropdowns — always visible on sm+, collapsible on mobile */}
+      <div className={`${filtersOpen ? 'flex' : 'hidden'} sm:flex flex-col sm:flex-row gap-3`}>
         {/* Category Filter Dropdown */}
         <div className="sm:w-48">
           <select

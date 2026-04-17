@@ -146,7 +146,7 @@ export default function UserSubmissionDetail({ submission }: UserSubmissionDetai
             <p className="text-gray-600">{submission.provider_name}</p>
           </div>
           
-          <div className="flex gap-3 flex-wrap">
+          <div className="flex flex-col items-stretch sm:flex-row sm:items-center gap-3">
             {canUseAsTemplate && (
               <button
               

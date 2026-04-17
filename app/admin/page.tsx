@@ -178,22 +178,15 @@ export default async function AdminPage({ searchParams }: PageProps) {
           <div>
             <div className="flex items-center gap-3 mb-2">
               <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-              <span className="px-2 py-1 bg-orange-100 text-orange-700 text-xs font-medium rounded">
-                Admin
-              </span>
+  
             </div>
             <p className="text-gray-600">
               Welcome back, {userData.full_name || user.email}. Manage class submissions below.
             </p>
           </div>
-          <Link
-            href="/dashboard"
-            className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1 transition-colors"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-              <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" />
-            </svg>
-            My Dashboard
+          <Link href="/dashboard" className="bg-blue-50 px-4 py-2 rounded-lg border border-blue-100 hover:bg-blue-100 transition-colors block text-right">
+            <span className="text-xs font-bold text-blue-600 uppercase tracking-wider block">User</span>
+            <span className="text-sm font-semibold text-gray-800">My Dashboard View</span>
           </Link>
         </div>
       </div>

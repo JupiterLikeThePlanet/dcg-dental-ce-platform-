@@ -20,6 +20,12 @@ export default async function HomePage() {
   );
   const { data: { user } } = await supabase.auth.getUser();
 
+  let isAdmin = false;
+  if (user) {
+    const { data } = await supabase.from('users').select('is_admin').eq('id', user.id).single();
+    isAdmin = data?.is_admin || false;
+  }
+
   return (
     <div className="max-w-5xl mx-auto px-4 py-20">
       <div className="text-center">
@@ -34,7 +40,7 @@ export default async function HomePage() {
         
         <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
           <Link
-            href={user ? "/dashboard" : "/signup"}
+            href={user ? (isAdmin ? "/admin" : "/dashboard") : "/signup"}
             className="px-8 py-4 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl text-lg"
           >
             {user ? "Go To Dashboard" : "Get Started Free"}

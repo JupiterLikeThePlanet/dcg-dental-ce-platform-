@@ -50,29 +50,50 @@ export default function AdminTabView({ submissions, emptyMessage, statusTabs, st
     }, 180);
   }
 
+  const tabStyle = (isActive: boolean) =>
+    `px-4 py-3 text-sm font-medium border-b-2 -mb-px transition-all duration-200 ${
+      isActive
+        ? 'border-blue-500 text-blue-600'
+        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+    }`;
+
   return (
     <>
-      {/* Toggle tabs — right-justified */}
-      <div className="flex justify-end mb-4">
-        <div className="flex border border-gray-200 rounded-sm overflow-hidden">
-          <button
-            onClick={() => switchTab('submissions')}
-            className={`px-4 py-2 text-sm font-medium transition-colors ${
-              activeTab === 'submissions'
-                ? 'bg-blue-600 text-white'
-                : 'bg-white text-gray-600 hover:bg-gray-50'
-            }`}
-          >
+      {/* Toolbar: status filter tabs (left) + view toggle (right), sharing one border-b */}
+      <div className="flex items-end justify-between border-b border-gray-200 mb-6">
+        {/* Left: status filter tabs — only shown in submissions view */}
+        <nav className="flex gap-4">
+          {displayedTab === 'submissions' ? (
+            statusTabs.map((tab) => {
+              const isActive = statusFilter === tab.key;
+              return (
+                <Link
+                  key={tab.key}
+                  href={`/admin?status=${tab.key}`}
+                  className={tabStyle(isActive)}
+                >
+                  {tab.label}
+                  <span
+                    className={`ml-2 px-2 py-0.5 rounded-full text-xs transition-colors ${
+                      isActive ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'
+                    }`}
+                  >
+                    {tab.count}
+                  </span>
+                </Link>
+              );
+            })
+          ) : (
+            <span className="px-4 py-3 text-sm font-medium text-gray-400">Coupons</span>
+          )}
+        </nav>
+
+        {/* Right: view toggle, matching tab underline style */}
+        <div className="flex gap-0">
+          <button onClick={() => switchTab('submissions')} className={tabStyle(activeTab === 'submissions')}>
             Submissions
           </button>
-          <button
-            onClick={() => switchTab('coupons')}
-            className={`px-4 py-2 text-sm font-medium border-l border-gray-200 transition-colors ${
-              activeTab === 'coupons'
-                ? 'bg-blue-600 text-white'
-                : 'bg-white text-gray-600 hover:bg-gray-50'
-            }`}
-          >
+          <button onClick={() => switchTab('coupons')} className={tabStyle(activeTab === 'coupons')}>
             Coupons
           </button>
         </div>
@@ -87,34 +108,6 @@ export default function AdminTabView({ submissions, emptyMessage, statusTabs, st
       >
         {displayedTab === 'submissions' ? (
           <>
-            {/* Status tabs */}
-            <div className="border-b border-gray-200 mb-6">
-              <nav className="flex gap-4">
-                {statusTabs.map((tab) => {
-                  const isActive = statusFilter === tab.key;
-                  return (
-                    <Link
-                      key={tab.key}
-                      href={`/admin?status=${tab.key}`}
-                      className={`px-4 py-3 text-sm font-medium border-b-2 -mb-px transition-all duration-200 ${
-                        isActive
-                          ? 'border-blue-500 text-blue-600'
-                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                      }`}
-                    >
-                      {tab.label}
-                      <span
-                        className={`ml-2 px-2 py-0.5 rounded-full text-xs transition-colors ${
-                          isActive ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'
-                        }`}
-                      >
-                        {tab.count}
-                      </span>
-                    </Link>
-                  );
-                })}
-              </nav>
-            </div>
 
             {error && (
               <div className="bg-red-50 border border-red-200 rounded-sm p-4 mb-6">

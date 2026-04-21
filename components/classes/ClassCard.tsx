@@ -37,7 +37,7 @@ export default function ClassCard({
   return (
     <Link 
       href={`/classes/${id}`}
-      className="block bg-white border-2 border-gray-200 rounded-sm hover:border-blue-600 transition-colors"
+      className="block bg-white border-2 border-gray-200 rounded-sm hover:border-blue-600 transition-colors flex flex-col"
     >
       <div className="relative h-48 w-full bg-gray-200">
         <Image
@@ -49,8 +49,8 @@ export default function ClassCard({
         />
       </div>
       
-      <div className="p-4">
-        <h3 className="font-bold text-lg mb-2 line-clamp-2 text-gray-900">
+      <div className="p-4 flex-grow flex flex-col">
+        <h3 className="font-bold text-lg mb-2 line-clamp-2 min-h-[3.5rem] text-gray-900">
           {title}
         </h3>
         

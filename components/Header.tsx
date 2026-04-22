@@ -199,9 +199,11 @@ const Header: React.FC = () => {
                 <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-medium">
                   {getInitials()}
                 </div>
-                <span className="hidden md:inline text-sm text-gray-700">
-                  {userData?.full_name || user.email?.split('@')[0]}
-                </span>
+                {userData && (
+                  <span className="hidden md:inline text-sm text-gray-700">
+                    {userData.full_name || user.email}
+                  </span>
+                )}
               </Link>
 
               <button

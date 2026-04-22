@@ -199,11 +199,9 @@ const Header: React.FC = () => {
                 <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-medium">
                   {getInitials()}
                 </div>
-                {userData && (
-                  <span className="hidden md:inline text-sm text-gray-700">
-                    {userData.full_name || user.email}
-                  </span>
-                )}
+                <span className="hidden md:inline text-sm text-gray-700">
+                  {user.email}
+                </span>
               </Link>
 
               <button
@@ -302,6 +300,17 @@ const Header: React.FC = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                 </svg>
                 {dashboardLabel}
+              </Link>
+
+              <Link
+                href="/change-password"
+                className="flex items-center gap-3 px-4 py-3.5 text-sm font-medium text-gray-700 hover:bg-gray-50 border-b border-gray-100 transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                </svg>
+                Change Password
               </Link>
 
               <button

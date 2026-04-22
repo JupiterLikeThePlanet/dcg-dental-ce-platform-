@@ -16,19 +16,28 @@ interface Submission {
   rejection_reason: string | null;
 }
 
-interface UserSubmissionsTableProps {
-  submissions: Submission[];
-}
-
 type SortField = 'created_at' | 'start_date' | 'title' | 'status';
 type SortDirection = 'asc' | 'desc';
 type StatusFilter = 'all' | 'pending' | 'approved' | 'rejected';
 
-export default function UserSubmissionsTable({ submissions }: UserSubmissionsTableProps) {
+interface UserSubmissionsTableProps {
+  submissions: Submission[];
+  activeFilter?: StatusFilter;
+  onFilterChange?: (filter: StatusFilter) => void;
+}
+
+export default function UserSubmissionsTable({ submissions, activeFilter, onFilterChange }: UserSubmissionsTableProps) {
   const router = useRouter();
   const [sortField, setSortField] = useState<SortField>('created_at');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [internalFilter, setInternalFilter] = useState<StatusFilter>('all');
+
+  // Use controlled filter if provided, otherwise internal
+  const statusFilter = activeFilter ?? internalFilter;
+  const setStatusFilter = (f: StatusFilter) => {
+    setInternalFilter(f);
+    onFilterChange?.(f);
+  };
 
   // Filter and sort submissions
   const filteredAndSortedSubmissions = useMemo(() => {

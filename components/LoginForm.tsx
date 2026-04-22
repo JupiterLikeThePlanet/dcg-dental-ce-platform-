@@ -119,9 +119,12 @@ const LoginForm: React.FC = () => {
         )}
       </button>
 
-      <div className="pt-4 border-t border-gray-100 text-center">
+      <div className="pt-4 border-t border-gray-100 text-center space-y-2">
         <p className="text-sm text-gray-600">
           Don&apos;t have an account? <Link href="/signup" className="text-blue-600 font-semibold hover:underline">Create one</Link>
+        </p>
+        <p className="text-sm text-gray-500">
+          <Link href="/forgot-password" className="text-blue-600 hover:underline">Forgot your password?</Link>
         </p>
       </div>
     </form>

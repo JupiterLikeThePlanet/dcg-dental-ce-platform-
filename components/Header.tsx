@@ -18,6 +18,7 @@ const Header: React.FC = () => {
   const [isClient, setIsClient] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
 
   const supabase = createClient();
@@ -191,30 +192,62 @@ const Header: React.FC = () => {
           </Link>
 
           {user ? (
-            <div className="flex items-center gap-3">
-              <Link
-                href={dashboardHref}
-                className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-              >
+            <div
+              className="relative"
+              onMouseEnter={() => setUserDropdownOpen(true)}
+              onMouseLeave={() => setUserDropdownOpen(false)}
+            >
+              {/* Trigger */}
+              <button className="flex items-center gap-2 hover:opacity-80 transition-opacity focus:outline-none">
                 <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-medium">
                   {getInitials()}
                 </div>
                 <span className="hidden md:inline text-sm text-gray-700">
-                  {user.email}
+                  {user.email?.split('@')[0]}
                 </span>
-              </Link>
-
-              <button
-                onClick={handleLogout}
-                disabled={isLoggingOut}
-                className={`px-3 py-1.5 text-sm border border-gray-300 rounded transition-colors ${
-                  isLoggingOut
-                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                    : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                }`}
-              >
-                {isLoggingOut ? 'Logging out...' : 'Logout'}
               </button>
+
+              {/* Hover dropdown */}
+              {userDropdownOpen && (
+                <div className="absolute right-0 top-full pt-1 w-52 z-50">
+                  <div className="bg-white rounded-xl shadow-lg border border-gray-100 py-1">
+                    <Link
+                      href={dashboardHref}
+                      onClick={() => setUserDropdownOpen(false)}
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                      </svg>
+                      {dashboardLabel}
+                    </Link>
+
+                    <Link
+                      href="/change-password"
+                      onClick={() => setUserDropdownOpen(false)}
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                      </svg>
+                      Change Password
+                    </Link>
+
+                    <div className="border-t border-gray-100 mt-1 pt-1">
+                      <button
+                        onClick={handleLogout}
+                        disabled={isLoggingOut}
+                        className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                        {isLoggingOut ? 'Logging out...' : 'Logout'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="flex items-center gap-3">

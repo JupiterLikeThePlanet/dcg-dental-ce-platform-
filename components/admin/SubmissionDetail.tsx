@@ -10,6 +10,7 @@ interface Submission {
   title: string;
   description: string;
   category: string | null;
+  attendance_type: string | null;
   start_date: string;
   end_date: string | null;
   start_time: string;
@@ -272,6 +273,16 @@ export default function SubmissionDetail({ submission }: SubmissionDetailProps) 
           {/* Location */}
           <div className="bg-white border border-gray-200 rounded-sm p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-3">Location</h2>
+            {submission.attendance_type && (
+              <span className={`inline-block text-xs font-medium px-2 py-0.5 rounded-full mb-3 ${{
+                'on-site': 'bg-green-100 text-green-800',
+                'remote': 'bg-purple-100 text-purple-800',
+                'hybrid': 'bg-orange-100 text-orange-800',
+                'pre-recorded': 'bg-blue-100 text-blue-800',
+              }[submission.attendance_type] ?? 'bg-gray-100 text-gray-700'}`}>
+                {{'on-site': 'On-Site', 'hybrid': 'Hybrid', 'remote': 'Remote', 'pre-recorded': 'Pre-Recorded'}[submission.attendance_type] ?? submission.attendance_type}
+              </span>
+            )}
             <div className="flex items-start gap-2">
               <span className="text-gray-400">📍</span>
               <div>

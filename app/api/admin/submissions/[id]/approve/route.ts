@@ -71,6 +71,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       title: submission.title,
       description: submission.description,
       category: submission.category,
+      attendance_type: submission.attendance_type,
       start_date: submission.start_date,
       end_date: submission.end_date,
       start_time: submission.start_time,

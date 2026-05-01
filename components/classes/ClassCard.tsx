@@ -11,7 +11,22 @@ interface ClassCardProps {
   price: number;
   image_url: string;
   ce_credits: number | null;
+  attendance_type: string | null;
 }
+
+const attendanceBadgeStyle: Record<string, string> = {
+  'on-site': 'bg-green-100 text-green-800',
+  'remote': 'bg-purple-100 text-purple-800',
+  'hybrid': 'bg-orange-100 text-orange-800',
+  'pre-recorded': 'bg-blue-100 text-blue-800',
+};
+
+const attendanceLabel: Record<string, string> = {
+  'on-site': 'On-Site',
+  'remote': 'Remote',
+  'hybrid': 'Hybrid',
+  'pre-recorded': 'Pre-Recorded',
+};
 
 export default function ClassCard({
   id,
@@ -22,7 +37,8 @@ export default function ClassCard({
   instructor_name,
   price,
   image_url,
-  ce_credits
+  ce_credits,
+  attendance_type,
 }: ClassCardProps) {
   // Format date
   const formatDate = (dateString: string) => {
@@ -56,7 +72,14 @@ export default function ClassCard({
         
         <div className="space-y-1 text-sm text-gray-600 mb-3">
           <p>📅 {formatDate(start_date)}</p>
-          <p>📍 {city}, {state}</p>
+          <p className="flex items-center gap-2">
+            <span>📍 {city}, {state}</span>
+            {attendance_type && (
+              <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${attendanceBadgeStyle[attendance_type] ?? 'bg-gray-100 text-gray-700'}`}>
+                {attendanceLabel[attendance_type] ?? attendance_type}
+              </span>
+            )}
+          </p>
           <p>👤 {instructor_name}</p>
           {ce_credits && (
             <p className="text-blue-600 font-semibold">{ce_credits} CE Credits</p>

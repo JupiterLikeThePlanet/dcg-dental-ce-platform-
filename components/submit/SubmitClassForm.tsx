@@ -28,6 +28,7 @@ interface FormData {
   timezone: string;
   
   // Location
+  attendance_type: string;
   address_line1: string;
   address_line2: string;
   city: string;
@@ -56,6 +57,7 @@ const initialFormData: FormData = {
   start_time: '08:00',
   end_time: '17:00',
   timezone: 'America/Chicago',
+  attendance_type: '',
   address_line1: '',
   address_line2: '',
   city: '',
@@ -262,6 +264,7 @@ export default function SubmitClassForm({ userId, userEmail, stripeSessionId, gr
         title: formData.title.trim(),
         description: formData.description.trim(),
         category: formData.category,
+        attendance_type: formData.attendance_type || null,
         start_date: formData.start_date,
         end_date: formData.end_date || null,
         start_time: formData.start_time,
@@ -549,7 +552,29 @@ export default function SubmitClassForm({ userId, userEmail, stripeSessionId, gr
   const renderStep3 = () => (
     <div className="space-y-4">
       <h2 className="text-xl font-semibold text-gray-900 mb-4">Location</h2>
-      
+
+      <div>
+        <label htmlFor="attendance_type" className="block text-sm font-medium text-gray-700 mb-1">
+          Attendance Type <span className="text-red-500">*</span>
+        </label>
+        <select
+          id="attendance_type"
+          name="attendance_type"
+          value={formData.attendance_type}
+          onChange={handleChange}
+          className={`w-full px-4 py-3 sm:py-2 text-base border rounded-sm focus:outline-none focus:border-blue-500 ${
+            errors.attendance_type ? 'border-red-500' : 'border-gray-300'
+          }`}
+        >
+          <option value="">Select attendance type...</option>
+          <option value="on-site">On-Site</option>
+          <option value="hybrid">Hybrid</option>
+          <option value="remote">Remote</option>
+          <option value="pre-recorded">Pre-Recorded</option>
+        </select>
+        {errors.attendance_type && <p className="text-red-500 text-sm mt-1">{errors.attendance_type}</p>}
+      </div>
+
       <div>
         <label htmlFor="address_line1" className="block text-sm font-medium text-gray-700 mb-1">
           Address Line 1 <span className="text-red-500">*</span>

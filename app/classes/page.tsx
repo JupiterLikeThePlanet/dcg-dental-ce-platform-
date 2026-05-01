@@ -38,6 +38,7 @@ export default async function ClassesPage({ searchParams }: PageProps) {
   const searchQuery = (params.search as string) || '';
   const stateFilter = (params.state as string) || '';
   const categoryFilter = (params.category as string) || '';
+  const attendanceTypeFilter = (params.attendance_type as string) || '';
   
   // Validate sort option
   const validSort: SortOption = ['date', 'instructor', 'price', 'location'].includes(sortParam) 
@@ -133,6 +134,11 @@ export default async function ClassesPage({ searchParams }: PageProps) {
     countQuery = countQuery.eq('category', categoryFilter);
   }
 
+  // Apply attendance type filter to count query
+  if (attendanceTypeFilter) {
+    countQuery = countQuery.eq('attendance_type', attendanceTypeFilter);
+  }
+
   const { count: totalCount, error: countError } = await countQuery;
 
   if (countError) {
@@ -186,6 +192,11 @@ export default async function ClassesPage({ searchParams }: PageProps) {
     mainQuery = mainQuery.eq('category', categoryFilter);
   }
 
+  // Apply attendance type filter to main query
+  if (attendanceTypeFilter) {
+    mainQuery = mainQuery.eq('attendance_type', attendanceTypeFilter);
+  }
+
   // Apply sorting and pagination
   const { data: classes, error } = await mainQuery
     .order(sortColumn, { ascending: validDirection === 'asc' })
@@ -220,7 +231,7 @@ export default async function ClassesPage({ searchParams }: PageProps) {
         </h1>
         <p className="text-gray-600">
           {totalItems} {totalItems === 1 ? 'class' : 'classes'} available
-          {(searchQuery || stateFilter || categoryFilter) && ' (filtered)'}
+          {(searchQuery || stateFilter || categoryFilter || attendanceTypeFilter) && ' (filtered)'}
         </p>
       </div>
 
@@ -229,6 +240,7 @@ export default async function ClassesPage({ searchParams }: PageProps) {
         currentSearch={searchQuery}
         currentState={stateFilter}
         currentCategory={categoryFilter}
+        currentAttendanceType={attendanceTypeFilter}
         availableStates={availableStates}
         availableCategories={availableCategories}
       />

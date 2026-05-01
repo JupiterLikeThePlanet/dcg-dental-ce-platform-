@@ -14,13 +14,6 @@ interface ClassCardProps {
   attendance_type: string | null;
 }
 
-const attendanceBadgeStyle: Record<string, string> = {
-  'on-site': 'bg-green-100 text-green-800',
-  'remote': 'bg-purple-100 text-purple-800',
-  'hybrid': 'bg-orange-100 text-orange-800',
-  'pre-recorded': 'bg-blue-100 text-blue-800',
-};
-
 const attendanceLabel: Record<string, string> = {
   'on-site': 'On-Site',
   'remote': 'Remote',
@@ -72,13 +65,8 @@ export default function ClassCard({
         
         <div className="space-y-1 text-sm text-gray-600 mb-3">
           <p>📅 {formatDate(start_date)}</p>
-          <p className="flex items-center gap-2">
-            <span>📍 {city}, {state}</span>
-            {attendance_type && (
-              <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${attendanceBadgeStyle[attendance_type] ?? 'bg-gray-100 text-gray-700'}`}>
-                {attendanceLabel[attendance_type] ?? attendance_type}
-              </span>
-            )}
+          <p>
+            📍 {city}, {state}{attendance_type ? ` · ${attendanceLabel[attendance_type] ?? attendance_type}` : ''}
           </p>
           <p>👤 {instructor_name}</p>
           {ce_credits && (

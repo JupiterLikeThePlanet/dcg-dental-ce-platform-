@@ -159,14 +159,9 @@ export default async function ClassDetailPage({ params }: PageProps) {
           <div>
             <h3 className="font-semibold text-gray-900 mb-1">Location</h3>
             {classData.attendance_type && (
-              <span className={`inline-block text-xs font-medium px-2 py-0.5 rounded-full mb-2 ${{
-                'on-site': 'bg-green-100 text-green-800',
-                'remote': 'bg-purple-100 text-purple-800',
-                'hybrid': 'bg-orange-100 text-orange-800',
-                'pre-recorded': 'bg-blue-100 text-blue-800',
-              }[classData.attendance_type] ?? 'bg-gray-100 text-gray-700'}`}>
+              <p className="text-gray-600 mb-2">
                 {{'on-site': 'On-Site', 'hybrid': 'Hybrid', 'remote': 'Remote', 'pre-recorded': 'Pre-Recorded'}[classData.attendance_type] ?? classData.attendance_type}
-              </span>
+              </p>
             )}
             <p className="text-gray-700">{classData.address_line1}</p>
             {classData.address_line2 && (

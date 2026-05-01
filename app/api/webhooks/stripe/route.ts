@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import type Stripe from 'stripe';
 import { getSupabaseAdmin } from '@/lib/supabase-admin';
 import { getStripeServer } from '@/lib/stripe-server';
 

@@ -1,20 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Stripe from 'stripe';
 import { createServerClient } from '@supabase/ssr';
-import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-
-// Admin client bypasses RLS — used only after ownership is verified via the user client
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { getSupabaseAdmin } from '@/lib/supabase-admin';
+import { getStripeServer } from '@/lib/stripe-server';
 
 export async function POST(request: NextRequest) {
   try {
     const { submissionData, stripeSessionId, grantedCoupon, couponCode, originalSubmissionId, editClassOnly } = await request.json();
+    const stripe = getStripeServer();
+    const supabaseAdmin = getSupabaseAdmin();
 
     const cookieStore = await cookies();
     const supabase = createServerClient(

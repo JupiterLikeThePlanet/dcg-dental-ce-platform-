@@ -163,21 +163,34 @@ export default async function ClassDetailPage({ params }: PageProps) {
                 {{'on-site': 'On-Site', 'hybrid': 'Hybrid', 'remote': 'Remote', 'pre-recorded': 'Pre-Recorded'}[classData.attendance_type] ?? classData.attendance_type}
               </p>
             )}
-            <p className="text-gray-700">{classData.address_line1}</p>
-            {classData.address_line2 && (
-              <p className="text-gray-700">{classData.address_line2}</p>
+            {classData.address_line1 ? (
+              <>
+                <p className="text-gray-700">{classData.address_line1}</p>
+                {classData.address_line2 && (
+                  <p className="text-gray-700">{classData.address_line2}</p>
+                )}
+                <p className="text-gray-700">
+                  {classData.city}, {classData.state} {classData.zip_code}
+                </p>
+                <a
+                  href={mapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:underline text-sm"
+                >
+                  Get Directions →
+                </a>
+              </>
+            ) : (
+              <>
+                <p className="text-gray-700">{classData.city}, {classData.state}</p>
+                {(classData.attendance_type === 'on-site' || classData.attendance_type === 'hybrid') && (
+                  <p className="text-gray-500 text-sm italic mt-1">
+                    Venue details available via the registration link.
+                  </p>
+                )}
+              </>
             )}
-            <p className="text-gray-700">
-              {classData.city}, {classData.state} {classData.zip_code}
-            </p>
-            <a 
-              href={mapsUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-600 hover:underline text-sm"
-            >
-              Get Directions →
-            </a>
           </div>
 
           {/* Instructor */}

@@ -28,6 +28,7 @@ interface FormData {
   timezone: string;
   
   // Location
+  attendance_type: string;
   address_line1: string;
   address_line2: string;
   city: string;
@@ -56,6 +57,7 @@ const initialFormData: FormData = {
   start_time: '08:00',
   end_time: '17:00',
   timezone: 'America/Chicago',
+  attendance_type: '',
   address_line1: '',
   address_line2: '',
   city: '',
@@ -196,11 +198,12 @@ export default function SubmitClassForm({ userId, userEmail, stripeSessionId, gr
     }
 
     if (step === 3) {
-      if (!formData.address_line1.trim()) newErrors.address_line1 = 'Address is required';
+      if (!formData.attendance_type) newErrors.attendance_type = 'Attendance type is required';
       if (!formData.city.trim()) newErrors.city = 'City is required';
       if (!formData.state) newErrors.state = 'State is required';
-      if (!formData.zip_code.trim()) newErrors.zip_code = 'ZIP code is required';
-      else if (!/^\d{5}(-\d{4})?$/.test(formData.zip_code)) newErrors.zip_code = 'Invalid ZIP code';
+      if (formData.zip_code.trim() && !/^\d{5}(-\d{4})?$/.test(formData.zip_code)) {
+        newErrors.zip_code = 'Invalid ZIP code';
+      }
     }
 
     if (step === 4) {
@@ -262,6 +265,7 @@ export default function SubmitClassForm({ userId, userEmail, stripeSessionId, gr
         title: formData.title.trim(),
         description: formData.description.trim(),
         category: formData.category,
+        attendance_type: formData.attendance_type || null,
         start_date: formData.start_date,
         end_date: formData.end_date || null,
         start_time: formData.start_time,
@@ -549,10 +553,32 @@ export default function SubmitClassForm({ userId, userEmail, stripeSessionId, gr
   const renderStep3 = () => (
     <div className="space-y-4">
       <h2 className="text-xl font-semibold text-gray-900 mb-4">Location</h2>
-      
+
+      <div>
+        <label htmlFor="attendance_type" className="block text-sm font-medium text-gray-700 mb-1">
+          Attendance Type <span className="text-red-500">*</span>
+        </label>
+        <select
+          id="attendance_type"
+          name="attendance_type"
+          value={formData.attendance_type}
+          onChange={handleChange}
+          className={`w-full px-4 py-3 sm:py-2 text-base border rounded-sm focus:outline-none focus:border-blue-500 ${
+            errors.attendance_type ? 'border-red-500' : 'border-gray-300'
+          }`}
+        >
+          <option value="">Select attendance type...</option>
+          <option value="on-site">On-Site</option>
+          <option value="hybrid">Hybrid</option>
+          <option value="remote">Remote</option>
+          <option value="pre-recorded">Pre-Recorded</option>
+        </select>
+        {errors.attendance_type && <p className="text-red-500 text-sm mt-1">{errors.attendance_type}</p>}
+      </div>
+
       <div>
         <label htmlFor="address_line1" className="block text-sm font-medium text-gray-700 mb-1">
-          Address Line 1 <span className="text-red-500">*</span>
+          Address Line 1 <span className="text-gray-400 text-xs">(optional)</span>
         </label>
         <input
           type="text"
@@ -566,6 +592,9 @@ export default function SubmitClassForm({ userId, userEmail, stripeSessionId, gr
           }`}
         />
         {errors.address_line1 && <p className="text-red-500 text-sm mt-1">{errors.address_line1}</p>}
+        {(formData.attendance_type === 'on-site' || formData.attendance_type === 'hybrid') && !formData.address_line1.trim() && (
+          <p className="text-amber-600 text-sm mt-1">Recommended for {formData.attendance_type} classes — helps attendees plan ahead.</p>
+        )}
       </div>
 
       <div>
@@ -624,7 +653,7 @@ export default function SubmitClassForm({ userId, userEmail, stripeSessionId, gr
 
         <div>
           <label htmlFor="zip_code" className="block text-sm font-medium text-gray-700 mb-1">
-            ZIP Code <span className="text-red-500">*</span>
+            ZIP Code <span className="text-gray-400 text-xs">(optional)</span>
           </label>
           <input
             type="text"

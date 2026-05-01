@@ -1,11 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-// Admin client to bypass RLS for cleanup operations
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { getSupabaseAdmin } from '@/lib/supabase-admin';
 
 // Secured with CRON_SECRET env var — set this in your Vercel project settings
 // Call via: POST /api/cleanup/expired-submissions
@@ -18,6 +12,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  const supabaseAdmin = getSupabaseAdmin();
   const oneYearAgo = new Date();
   oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
   const oneYearAgoStr = oneYearAgo.toISOString().split('T')[0];

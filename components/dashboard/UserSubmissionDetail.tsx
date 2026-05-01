@@ -9,6 +9,7 @@ interface Submission {
   title: string;
   description: string;
   category: string | null;
+  attendance_type: string | null;
   start_date: string;
   end_date: string | null;
   start_time: string;
@@ -74,6 +75,7 @@ export default function UserSubmissionDetail({ submission }: UserSubmissionDetai
       title: submission.title,
       description: submission.description,
       category: submission.category || '',
+      attendance_type: submission.attendance_type || '',
       start_date: '',  // Clear dates for new submission
       end_date: '',
       start_time: submission.start_time,
@@ -102,6 +104,7 @@ export default function UserSubmissionDetail({ submission }: UserSubmissionDetai
       title: submission.title,
       description: submission.description,
       category: submission.category || '',
+      attendance_type: submission.attendance_type || '',
       start_date: submission.start_date,
       end_date: submission.end_date || '',
       start_time: submission.start_time,
@@ -307,6 +310,11 @@ export default function UserSubmissionDetail({ submission }: UserSubmissionDetai
           {/* Location */}
           <div className="bg-white border border-gray-200 rounded-xl p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-3">Location</h2>
+            {submission.attendance_type && (
+              <p className="text-gray-600 mb-2">
+                {{'on-site': 'On-Site', 'hybrid': 'Hybrid', 'remote': 'Remote', 'pre-recorded': 'Pre-Recorded'}[submission.attendance_type] ?? submission.attendance_type}
+              </p>
+            )}
             <div className="flex items-start gap-2">
               <span className="text-gray-400">📍</span>
               <div>

@@ -7,6 +7,7 @@ interface FilterBarProps {
   currentSearch: string;
   currentState: string;
   currentCategory: string;
+  currentAttendanceType: string;
   availableStates: string[];
   availableCategories: string[];
 }
@@ -15,6 +16,7 @@ export default function FilterBar({
   currentSearch,
   currentState,
   currentCategory,
+  currentAttendanceType,
   availableStates,
   availableCategories
 }: FilterBarProps) {
@@ -27,6 +29,7 @@ export default function FilterBar({
   // Draft values inside the sheet (applied only on "Apply")
   const [draftCategory, setDraftCategory] = useState(currentCategory);
   const [draftState, setDraftState] = useState(currentState);
+  const [draftAttendanceType, setDraftAttendanceType] = useState(currentAttendanceType);
 
   useEffect(() => {
     setSearchInput(currentSearch);
@@ -37,8 +40,9 @@ export default function FilterBar({
     if (sheetOpen) {
       setDraftCategory(currentCategory);
       setDraftState(currentState);
+      setDraftAttendanceType(currentAttendanceType);
     }
-  }, [sheetOpen, currentCategory, currentState]);
+  }, [sheetOpen, currentCategory, currentState, currentAttendanceType]);
 
   // Lock body scroll while sheet is open
   useEffect(() => {
@@ -50,31 +54,27 @@ export default function FilterBar({
     return () => { document.body.style.overflow = ''; };
   }, [sheetOpen]);
 
-  const updateFilters = (newParams: { search?: string; state?: string; category?: string }) => {
+  const updateFilters = (newParams: { search?: string; state?: string; category?: string; attendance_type?: string }) => {
     const params = new URLSearchParams(searchParams.toString());
 
     if (newParams.search !== undefined) {
-      if (newParams.search) {
-        params.set('search', newParams.search);
-      } else {
-        params.delete('search');
-      }
+      if (newParams.search) params.set('search', newParams.search);
+      else params.delete('search');
     }
 
     if (newParams.state !== undefined) {
-      if (newParams.state) {
-        params.set('state', newParams.state);
-      } else {
-        params.delete('state');
-      }
+      if (newParams.state) params.set('state', newParams.state);
+      else params.delete('state');
     }
 
     if (newParams.category !== undefined) {
-      if (newParams.category) {
-        params.set('category', newParams.category);
-      } else {
-        params.delete('category');
-      }
+      if (newParams.category) params.set('category', newParams.category);
+      else params.delete('category');
+    }
+
+    if (newParams.attendance_type !== undefined) {
+      if (newParams.attendance_type) params.set('attendance_type', newParams.attendance_type);
+      else params.delete('attendance_type');
     }
 
     params.delete('page');
@@ -95,13 +95,14 @@ export default function FilterBar({
   };
 
   const handleApplySheet = () => {
-    updateFilters({ state: draftState, category: draftCategory });
+    updateFilters({ state: draftState, category: draftCategory, attendance_type: draftAttendanceType });
     setSheetOpen(false);
   };
 
   const handleClearSheet = () => {
     setDraftState('');
     setDraftCategory('');
+    setDraftAttendanceType('');
   };
 
   const handleClearAll = () => {
@@ -109,13 +110,14 @@ export default function FilterBar({
     params.delete('search');
     params.delete('state');
     params.delete('category');
+    params.delete('attendance_type');
     params.delete('page');
     setSearchInput('');
     router.push(`/classes?${params.toString()}`);
   };
 
-  const hasActiveFilters = currentSearch || currentState || currentCategory;
-  const activeFilterCount = [currentState, currentCategory].filter(Boolean).length;
+  const hasActiveFilters = currentSearch || currentState || currentCategory || currentAttendanceType;
+  const activeFilterCount = [currentState, currentCategory, currentAttendanceType].filter(Boolean).length;
 
   return (
     <div className="mb-6 space-y-4">
@@ -188,6 +190,20 @@ export default function FilterBar({
             ))}
           </select>
         </div>
+
+        <div className="w-36">
+          <select
+            value={currentAttendanceType}
+            onChange={(e) => updateFilters({ attendance_type: e.target.value })}
+            className="w-full px-4 py-2 border border-gray-300 rounded-sm focus:outline-none focus:border-blue-500 text-sm bg-white"
+          >
+            <option value="">All Types</option>
+            <option value="on-site">On-Site</option>
+            <option value="hybrid">Hybrid</option>
+            <option value="remote">Remote</option>
+            <option value="pre-recorded">Pre-Recorded</option>
+          </select>
+        </div>
       </div>
 
       {/* Active Filters Display */}
@@ -213,6 +229,13 @@ export default function FilterBar({
             <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-800 text-sm rounded-sm">
               {currentState}
               <button onClick={() => updateFilters({ state: '' })} className="ml-1 hover:text-green-600">✕</button>
+            </span>
+          )}
+
+          {currentAttendanceType && (
+            <span className="inline-flex items-center gap-1 px-2 py-1 bg-orange-100 text-orange-800 text-sm rounded-sm">
+              {{'on-site': 'On-Site', 'hybrid': 'Hybrid', 'remote': 'Remote', 'pre-recorded': 'Pre-Recorded'}[currentAttendanceType] ?? currentAttendanceType}
+              <button onClick={() => updateFilters({ attendance_type: '' })} className="ml-1 hover:text-orange-600">✕</button>
             </span>
           )}
 
@@ -276,6 +299,20 @@ export default function FilterBar({
               {availableStates.map((state) => (
                 <option key={state} value={state}>{state}</option>
               ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Attendance Type</label>
+            <select
+              value={draftAttendanceType}
+              onChange={(e) => setDraftAttendanceType(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-base bg-white focus:outline-none focus:border-blue-500"
+            >
+              <option value="">All Types</option>
+              <option value="In-Person">In-Person</option>
+              <option value="Virtual">Virtual</option>
+              <option value="Hybrid">Hybrid</option>
             </select>
           </div>
         </div>

@@ -10,6 +10,7 @@ interface Class {
   price: number;
   image_url: string;
   ce_credits: number | null;
+  attendance_type: string | null;
 }
 
 interface ClassGridProps {
@@ -45,6 +46,7 @@ export default function ClassGrid({ classes }: ClassGridProps) {
             price={classItem.price}
             image_url={classItem.image_url}
             ce_credits={classItem.ce_credits}
+            attendance_type={classItem.attendance_type}
           />
         </div>
       ))}

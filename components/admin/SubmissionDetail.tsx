@@ -10,6 +10,7 @@ interface Submission {
   title: string;
   description: string;
   category: string | null;
+  attendance_type: string | null;
   start_date: string;
   end_date: string | null;
   start_time: string;
@@ -272,6 +273,11 @@ export default function SubmissionDetail({ submission }: SubmissionDetailProps) 
           {/* Location */}
           <div className="bg-white border border-gray-200 rounded-sm p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-3">Location</h2>
+            {submission.attendance_type && (
+              <p className="text-gray-600 mb-2">
+                {{'on-site': 'On-Site', 'hybrid': 'Hybrid', 'remote': 'Remote', 'pre-recorded': 'Pre-Recorded'}[submission.attendance_type] ?? submission.attendance_type}
+              </p>
+            )}
             <div className="flex items-start gap-2">
               <span className="text-gray-400">📍</span>
               <div>

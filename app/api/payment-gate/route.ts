@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Stripe from 'stripe';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+import { getStripeServer } from '@/lib/stripe-server';
 
 export async function POST(request: NextRequest) {
   const cookieStore = await cookies();
@@ -45,6 +43,7 @@ export async function POST(request: NextRequest) {
 
   // ── Stripe initiation path ──────────────────────────────────────────────────
   if (initiateStripe) {
+    const stripe = getStripeServer();
     const successBase = `${request.nextUrl.origin}/submit?paid={CHECKOUT_SESSION_ID}`;
     const successUrl = preserveTemplateMode
       ? `${successBase}&template=true`

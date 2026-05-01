@@ -11,7 +11,15 @@ interface ClassCardProps {
   price: number;
   image_url: string;
   ce_credits: number | null;
+  attendance_type: string | null;
 }
+
+const attendanceLabel: Record<string, string> = {
+  'on-site': 'On-Site',
+  'remote': 'Remote',
+  'hybrid': 'Hybrid',
+  'pre-recorded': 'Pre-Recorded',
+};
 
 export default function ClassCard({
   id,
@@ -22,7 +30,8 @@ export default function ClassCard({
   instructor_name,
   price,
   image_url,
-  ce_credits
+  ce_credits,
+  attendance_type,
 }: ClassCardProps) {
   // Format date
   const formatDate = (dateString: string) => {
@@ -56,7 +65,9 @@ export default function ClassCard({
         
         <div className="space-y-1 text-sm text-gray-600 mb-3">
           <p>📅 {formatDate(start_date)}</p>
-          <p>📍 {city}, {state}</p>
+          <p>
+            📍 {city}, {state}{attendance_type ? ` · ${attendanceLabel[attendance_type] ?? attendance_type}` : ''}
+          </p>
           <p>👤 {instructor_name}</p>
           {ce_credits && (
             <p className="text-blue-600 font-semibold">{ce_credits} CE Credits</p>

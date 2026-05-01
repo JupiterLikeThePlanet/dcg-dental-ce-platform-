@@ -1,12 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
-import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { getSupabaseAdmin } from '@/lib/supabase-admin';
 
 async function verifyAdmin() {
   const cookieStore = await cookies();
@@ -25,6 +20,7 @@ export async function GET() {
   const user = await verifyAdmin();
   if (!user) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
+  const supabaseAdmin = getSupabaseAdmin();
   const { data: coupons, error } = await supabaseAdmin
     .from('coupon_codes')
     .select('id, code, is_active, current_uses, max_uses')
@@ -38,6 +34,7 @@ export async function POST(request: NextRequest) {
   const user = await verifyAdmin();
   if (!user) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
+  const supabaseAdmin = getSupabaseAdmin();
   const { code } = await request.json();
 
   if (!code?.trim()) return NextResponse.json({ error: 'Code is required' }, { status: 400 });

@@ -1,13 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
-import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
-
-// Admin client for bypassing RLS
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { getSupabaseAdmin } from '@/lib/supabase-admin';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -47,6 +41,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
     }
 
+    const supabaseAdmin = getSupabaseAdmin();
+
     // Fetch the submission
     const { data: submission, error: fetchError } = await supabaseAdmin
       .from('submissions')
@@ -71,6 +67,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       title: submission.title,
       description: submission.description,
       category: submission.category,
+      attendance_type: submission.attendance_type,
       start_date: submission.start_date,
       end_date: submission.end_date,
       start_time: submission.start_time,

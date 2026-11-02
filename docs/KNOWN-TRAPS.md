@@ -16,8 +16,7 @@ Mistakes Claude (and humans) have already made on this project, plus the ones it
 | Tailwind v4 syntax (`@import "tailwindcss"`, `@theme`) | Repo is on Tailwind v3 |
 | Naming an API file `approve-route.ts` | Next only routes `route.ts`. A stray `app/admin/submissions/[id]/approve/approve-route.ts` used to exist and did nothing (deleted 2026-11-02). |
 | Assuming an email service exists | None in code. Auth emails come from Supabase. |
-| Assuming `types/database.ts` or `schema.sql` has the schema | Both are empty files |
-| Assuming migrations live in `supabase/migrations` | Folder is empty and gitignored |
+| Assuming `types/database.ts` or `schema.sql` has the schema | Both are empty files. The real schema is in `supabase/migrations/` (baseline + numbered migrations). |
 | "AGD codes" as a separate field | Categories already use AGD subject area names. There are no numeric codes in the DB. `TODO: verify` with Jupiter if numeric codes are still wanted. |
 
 ## Bugs we already fixed (don't reintroduce)

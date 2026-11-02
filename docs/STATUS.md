@@ -23,6 +23,7 @@ Last checked against the repo: 2026-11-01. Last commit on `main`: 2026-05-01 (at
 - Follow-ups (2026-11-02, same branch, not yet deployed): deleted stray `approve-route.ts`, removed `@supabase/auth-helpers-nextjs`, cleanup route accepts GET (cron-ready, not scheduled), ESLint config added (`npm run lint` works), success page no longer promises an email, submit pages use the `lib/` Stripe and Supabase helpers
 - Security: four `SECURITY DEFINER` functions (`admin_delete_user`, `approve_submission`, `reject_submission`, `validate_coupon`) were callable by anyone. Locked down by `supabase/migrations/001_lock_down_definer_functions.sql`, applied and verified on staging and prod 2026-11-02.
 - Staging schema matches prod (migration 002 added prod's title/description length checks to staging; structure fingerprints identical 2026-11-02).
+- Schema in git: `supabase/migrations/000_baseline.sql` (staging dump, 2026-11-02) + `000_baseline_auth_trigger.sql`; `DATA-MODEL.md` reconciled against it.
 
 ## Open
 - [ ] Run Playwright against staging with the audit fixes (staging DB was unreachable on 2026-11-02)
@@ -33,7 +34,7 @@ Last checked against the repo: 2026-11-01. Last commit on `main`: 2026-05-01 (at
 - [ ] Decide: finish soft delete (nothing sets `deleted_at`; cleanup hard-deletes) or drop the column
 - [ ] No recovery for "paid but didn't submit" beyond revisiting the same `/submit?paid=` URL
 - [ ] Admin coupon UI can't set `expires_at` or `max_uses`
-- [ ] Commit the real DB schema. `schema.sql`, `types/database.ts`, and migrations are all empty.
+- [ ] RLS: "Users can update own pending submissions" allows any column, so a user can edit payment fields (`stripe_payment_id`, `payment_amount`, `coupon_code`) on their own pending row from the browser. Can't self-approve. Fix with a column-limited policy or move edits server-side.
 - [ ] Confirm Stripe live mode is set in Vercel Production and the live webhook works
 - [ ] Confirm Supabase Auth Site URL / redirects use dcgdental.com
 - [ ] Confirm the email template is live in prod, and whether custom SMTP is set

@@ -67,14 +67,29 @@ All coupon reads go through the service role (`lib/coupons.ts`), so `coupon_code
 
 - Deleting a user cascades to their submissions and classes
 - Deleting a submission cascades to its class
-- There's an `admin_delete_user(email)` SQL function for removing spam accounts. `TODO: verify` it exists in prod.
+- There's an `admin_delete_user(email)` SQL function for removing spam accounts (exists in both projects). Run it from the SQL editor only.
+
+## SQL functions
+
+All `SECURITY DEFINER` (they bypass RLS) except `update_updated_at`. Verified identical in staging and prod on 2026-11-02.
+
+| Function | Who can call it | Notes |
+|---|---|---|
+| `is_admin()` | everyone | Used by RLS policies. Must stay callable. |
+| `handle_new_user()` | trigger only | `on_auth_user_created` on `auth.users` |
+| `update_updated_at()` | trigger only | `updated_at` triggers on users, submissions, classes |
+| `admin_delete_user(email)` | SQL editor + service role | No admin check inside. Locked by migration 001. |
+| `approve_submission`, `reject_submission` | SQL editor + service role | Not used by the app (API routes do this). Locked by 001. |
+| `validate_coupon(code)` | SQL editor + service role | Not used by the app (`lib/coupons.ts` does this). Locked by 001. |
+
+Any new `SECURITY DEFINER` function must either check `is_admin()` inside or `revoke execute ... from public, anon, authenticated`. Postgres and Supabase let everyone call new functions through `/rest/v1/rpc/` by default.
 
 ## RLS
 
-- RLS is on for all public tables. `TODO: verify` it's on for `users` in prod (it was disabled once during debugging).
-- `users` SELECT policy: any authenticated user can read. This is what lets the admin check work during login.
+- RLS is on for all four public tables in both staging and prod, `users` included (verified 2026-11-02).
+- `users` SELECT: users read their own row; admins read all rows via `is_admin()` (a `SECURITY DEFINER` function, so the admin check doesn't recurse into RLS). There is no "any authenticated user can read" policy.
 - Service role (`getSupabaseAdmin`) skips RLS. Only use it where the code already does (webhook, cleanup, admin ops, coupon lookups, checkout writes).
-- `coupon_codes`: if a policy lets `authenticated` SELECT it, any logged-in user can list every code from the browser. The app no longer needs that policy. `TODO: verify` and drop it via `dcg-migration`.
+- `coupon_codes`: the "Users can view active coupons" policy lets any logged-in user list active codes from the browser. The app no longer needs it, but it stays for now: the plan is to hide paywall and coupons behind a flag, not remove them (see `STATUS.md`).
 
 ## Rules for queries
 

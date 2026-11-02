@@ -11,6 +11,7 @@ Mistakes Claude (and humans) have already made on this project, plus the ones it
 | Next 15-only APIs (`after()`, `connection()`, `use cache`, async-only request APIs) | This is Next 14 (14.2). `await cookies()` and Promise-typed `params` are fine and already the house style (see `CONVENTIONS.md`), but don't reach for APIs that don't exist in 14. |
 | Spreading the request body into a DB write (`...submissionData`) | Run it through `pickSubmissionFields()` first. Raw spreads let a user set `status`, `deleted_at`, etc. |
 | Checking coupons with the user's Supabase client | Use `lib/coupons.ts`. It checks expiry and counts uses safely. |
+| Creating a `SECURITY DEFINER` SQL function and moving on | Everyone, logged out included, can call it via `/rest/v1/rpc/`. Check `is_admin()` inside or revoke execute. See migration 001. |
 | Writing `pages/` or `getServerSideProps` | App Router only |
 | Tailwind v4 syntax (`@import "tailwindcss"`, `@theme`) | Repo is on Tailwind v3 |
 | Naming an API file `approve-route.ts` | Next only routes `route.ts`. A stray `app/admin/submissions/[id]/approve/approve-route.ts` used to exist and did nothing (deleted 2026-11-02). |
@@ -21,7 +22,7 @@ Mistakes Claude (and humans) have already made on this project, plus the ones it
 
 ## Bugs we already fixed (don't reintroduce)
 
-- **Admin couldn't log in:** `public.users.id` didn't match `auth.users.id`, and RLS blocked the `is_admin` read. Fix: matching UUIDs + "authenticated can read users" policy.
+- **Admin couldn't log in:** `public.users.id` didn't match `auth.users.id`, and RLS blocked the `is_admin` read. Fix: matching UUIDs + an RLS path for the admin read (today: "Admins can view all users" using `is_admin()`).
 - **`public.users` row missing after signup:** fixed by trigger + upsert in the auth callback. Keep both.
 - **Supabase "lock was released because another request stole it":** too many browser clients. Fix: singleton in `lib/supabase.ts`.
 - **Vercel build failures:** module-level client init. Fixed with lazy init.

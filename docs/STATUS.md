@@ -21,18 +21,18 @@ Last checked against the repo: 2026-11-01. Last commit on `main`: 2026-05-01 (at
   - Dead `timezone` form field removed
   - Playwright creds moved to `TEST_*` env vars; generated files untracked
 - Follow-ups (2026-11-02, same branch, not yet deployed): deleted stray `approve-route.ts`, removed `@supabase/auth-helpers-nextjs`, cleanup route accepts GET (cron-ready, not scheduled), ESLint config added (`npm run lint` works), success page no longer promises an email, submit pages use the `lib/` Stripe and Supabase helpers
+- Security: four `SECURITY DEFINER` functions (`admin_delete_user`, `approve_submission`, `reject_submission`, `validate_coupon`) were callable by anyone. Locked down by `supabase/migrations/001_lock_down_definer_functions.sql`, applied and verified on staging and prod 2026-11-02.
 
 ## Open
 - [ ] Run Playwright against staging with the audit fixes (staging DB was unreachable on 2026-11-02)
 - [ ] Add `TEST_USER_*` / `TEST_ADMIN_*` to `.env.local`, and rotate the staging test passwords (old ones are in git history)
 - [ ] Migration: unique index on `submissions.stripe_payment_id` (backs the one-payment rule at the DB level)
-- [ ] Migration: drop any `authenticated` SELECT policy on `coupon_codes` (app no longer needs it). Verify against the baseline first.
+- [ ] Hide the paywall and coupons on the live site (client wants free listings), ideally behind a flag. Don't delete Stripe/coupon code or the `coupon_codes` policies; they may come back.
 - [ ] Decide: should editing an approved listing go back to review? Today it updates the live class immediately.
 - [ ] Decide: finish soft delete (nothing sets `deleted_at`; cleanup hard-deletes) or drop the column
 - [ ] No recovery for "paid but didn't submit" beyond revisiting the same `/submit?paid=` URL
 - [ ] Admin coupon UI can't set `expires_at` or `max_uses`
 - [ ] Commit the real DB schema. `schema.sql`, `types/database.ts`, and migrations are all empty.
-- [ ] Confirm RLS is enabled on `users` in prod
 - [ ] Confirm Stripe live mode is set in Vercel Production and the live webhook works
 - [ ] Confirm Supabase Auth Site URL / redirects use dcgdental.com
 - [ ] Confirm the email template is live in prod, and whether custom SMTP is set

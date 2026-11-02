@@ -2,7 +2,7 @@
  * Admin Dashboard Tests
  *
  * Prerequisites:
- *   testadmin@example.com  — is_admin = true in the users table
+ *   TEST_ADMIN_EMAIL account (from .env.local) — is_admin = true in the users table
  *   At least one submission with status = 'pending' must exist
  *
  * Approve/Reject tests mutate data — run against a test/staging Supabase project,

@@ -43,6 +43,7 @@ dist-ssr
 *.sw?
 # Next.js
 .next/
+*.tsbuildinfo
 out/
 build/
 dist/

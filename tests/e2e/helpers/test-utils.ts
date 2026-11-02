@@ -1,13 +1,26 @@
 import { Page } from '@playwright/test';
 
+/**
+ * Staging test accounts. Credentials come from env vars (set them in
+ * .env.local, which playwright.config.ts loads), never from the repo.
+ * Read lazily so specs that don't log in still run without them.
+ */
+function requireEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`Missing ${name}. Add it to .env.local (staging test account). See docs/testing-guide.md.`);
+  }
+  return value;
+}
+
 export const TEST_USER = {
-  email: 'testuser@example.com',
-  password: 'testpassword123',
+  get email() { return requireEnv('TEST_USER_EMAIL'); },
+  get password() { return requireEnv('TEST_USER_PASSWORD'); },
 };
 
 export const TEST_ADMIN = {
-  email: 'testadmin@example.com',
-  password: 'testpassword123',
+  get email() { return requireEnv('TEST_ADMIN_EMAIL'); },
+  get password() { return requireEnv('TEST_ADMIN_PASSWORD'); },
 };
 
 export async function login(page: Page, user = TEST_USER) {

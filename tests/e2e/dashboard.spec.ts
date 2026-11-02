@@ -2,8 +2,8 @@
  * User Dashboard Tests
  *
  * Prerequisites — these test users + submissions must exist in Supabase:
- *   testuser@example.com   — has at least one submission of each status
- *   testadmin@example.com  — is_admin = true
+ *   TEST_USER_EMAIL account (from .env.local) — has at least one submission of each status
+ *   TEST_ADMIN_EMAIL account (from .env.local) — is_admin = true
  *
  * Status badge labels (from StatusBadge.tsx):
  *   pending_payment → "Pending Payment"

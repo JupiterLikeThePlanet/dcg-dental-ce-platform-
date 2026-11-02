@@ -68,7 +68,13 @@ coverage/
 playwright-report/
 test-results/
 
-supabase/
+# Supabase: commit migrations, ignore CLI state and data dumps
+supabase/.temp/
+supabase/.branches/
+supabase/**/data.sql
+
+# Claude Code personal settings
+.claude/settings.local.json
 
 # Misc
 .cache/.next

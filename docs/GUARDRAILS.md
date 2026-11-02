@@ -21,7 +21,7 @@ Hard rules. If a task seems to need breaking one, stop and ask instead.
 ## Data
 - Schema changes go through the `dcg-migration` skill: SQL file, staging first, verify, then prod with approval
 - No `DELETE`, `TRUNCATE`, or `DROP` without approval, even on staging
-- Respect soft delete. Set `deleted_at` on classes; don't hard delete.
+- Prefer soft delete for new code: set `deleted_at` on classes. Note the app doesn't do this anywhere yet; the cleanup route and the approve rollback hard-delete. Don't add new hard deletes without approval.
 
 ## Git
 - Explain any destructive command before running it (`rm`, `mv`, `reset`, `rebase`, force anything)

@@ -41,6 +41,8 @@ npm run test:e2e          # Playwright, against STAGING only
 npm run test:e2e:headed
 ```
 
+Playwright hits `http://localhost:3000` and doesn't start a server. Run `npm run dev` first, with `.env.local` pointed at staging. Test account credentials come from `TEST_USER_EMAIL`, `TEST_USER_PASSWORD`, `TEST_ADMIN_EMAIL`, `TEST_ADMIN_PASSWORD` in `.env.local`.
+
 ## Five rules that matter most
 
 1. Never touch the production Supabase project or live Stripe without an explicit yes in chat.

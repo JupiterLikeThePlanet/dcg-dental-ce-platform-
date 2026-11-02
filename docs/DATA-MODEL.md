@@ -29,30 +29,39 @@ Everything a provider sends in, any status.
 - When: `start_date`, `end_date`, `start_time`, `end_time`
 - Where: `address_line1`, `address_line2`, `city`, `state`, `zip_code`
 - Who: `instructor_name`, `provider_name`, `contact_email`, `contact_phone`
-- Details: `price`, `ce_credits`, `registration_url`, `image_url`
-- Workflow: `submitted_by` (uuid → users, cascade), `status`, `stripe_payment_id`, `payment_amount` (default 5.00), `used_coupon_code`, `reviewed_by`, `reviewed_at`, `rejection_reason`
+- Details: `price`, `ce_credits`, `registration_url`, `image_url` (the form fills in a stock Unsplash image if left blank, `SubmitClassForm.tsx`)
+- Geo: `latitude`, `longitude`. The approve route copies them to `classes`, but nothing in the app writes them. `TODO: verify` they exist in the schema.
+- Workflow: `submitted_by` (uuid → users, cascade), `status`, `stripe_payment_id`, `payment_amount` (`TODO: verify` default; code always sets 5.00 or 0 explicitly), `coupon_code`, `reviewed_by`, `reviewed_at`, `rejection_reason`
 - `created_at`, `updated_at`
 
 `status` enum: `pending_payment` | `pending` | `approved` | `rejected`
 
-### `classes`
-Live listings. Same content columns as `submissions`, plus:
+`stripe_payment_id` is one payment per submission. `app/api/checkout/route.ts` refuses a payment intent that's already on a row. There's no unique index backing this yet (see `docs/STATUS.md`).
 
+Users can only set the listing fields in `lib/submission-fields.ts`. Checkout drops everything else from the request body, so `status`, `submitted_by`, payment columns, etc. are always set server side.
+
+### `classes`
+Live listings. Same content columns as `submissions` (including `latitude` / `longitude`), plus:
+
+- `status` text. The approve route sets `'approved'`; browse filters on it.
 - `posted_by` uuid → users (cascade)
 - `is_admin_post` boolean
 - `submission_id` uuid → submissions (cascade)
-- `deleted_at` timestamptz. Soft delete. Every public query must filter `.is('deleted_at', null)`.
+- `deleted_at` timestamptz. Soft-delete column. Every public query filters `.is('deleted_at', null)`, but **nothing in the app sets it today**. The cleanup route hard-deletes (see `docs/DECISIONS.md`).
 
 ### `coupon_codes`
 
 | Column | Notes |
 |---|---|
-| code | unique |
-| max_uses | null means unlimited |
-| current_uses | default 0 |
-| expires_at | |
+| id | used by `DELETE /api/admin/coupons/[id]` |
+| code | unique. Admin UI uppercases and caps at 8 chars. |
+| max_uses | null means unlimited. Admin UI always creates with null. |
+| current_uses | default 0. Incremented with a compare-and-set in `lib/coupons.ts` so concurrent redemptions can't overshoot `max_uses`. |
+| expires_at | Enforced by `isCouponUsable()` in `lib/coupons.ts`. The admin UI can't set it yet. |
 | is_active | default true |
-| notes | |
+| notes | `TODO: verify` |
+
+All coupon reads go through the service role (`lib/coupons.ts`), so `coupon_codes` doesn't need a SELECT policy for regular users.
 
 ## Relationships
 
@@ -64,10 +73,11 @@ Live listings. Same content columns as `submissions`, plus:
 
 - RLS is on for all public tables. `TODO: verify` it's on for `users` in prod (it was disabled once during debugging).
 - `users` SELECT policy: any authenticated user can read. This is what lets the admin check work during login.
-- Service role (`getSupabaseAdmin`) skips RLS. Only use it where the code already does (webhook, cleanup, admin ops).
+- Service role (`getSupabaseAdmin`) skips RLS. Only use it where the code already does (webhook, cleanup, admin ops, coupon lookups, checkout writes).
+- `coupon_codes`: if a policy lets `authenticated` SELECT it, any logged-in user can list every code from the browser. The app no longer needs that policy. `TODO: verify` and drop it via `dcg-migration`.
 
 ## Rules for queries
 
 - Read this file or the real schema before writing a query. Don't guess a column name.
-- Public browse queries filter `status = 'approved'` (submissions) or `deleted_at is null` (classes), and hide past `end_date`.
+- Public browse reads `classes` only, with all three filters: `status = 'approved'`, `deleted_at is null`, and `end_date` null or today or later (`app/classes/page.tsx`).
 - If `types/database.ts` ever gets generated, use those types instead of hand-written interfaces.

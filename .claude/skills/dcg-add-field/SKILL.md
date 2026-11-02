@@ -5,7 +5,7 @@ description: Add a new field to DCG Dental class listings end to end (DB column,
 
 # Add a listing field
 
-A new field touches about ten places. Missing one is how fields silently vanish on approval. Attendance type followed exactly this path; use commit `ee7d323` and its neighbors as the reference.
+A new field touches about ten places. Missing one is how fields silently vanish on approval. Attendance type followed exactly this path; use PR #17 (the `attendance_type` branch, merged as `065f928`) as the reference.
 
 ## 0. Confirm the spec before touching code
 Ask Jupiter, in one message:
@@ -21,8 +21,8 @@ Ask Jupiter, in one message:
 - Update `docs/DATA-MODEL.md`
 
 ## 2. Wire it through, in this order
-1. `components/submit/SubmitClassForm.tsx`: add to the `FormData` interface, `initialFormData`, the right step's JSX, and `validateStep(n)`. Give the input a stable `id`.
-2. `app/api/checkout/route.ts`: include it in insert and update payloads
+1. `components/submit/SubmitClassForm.tsx`: add to the `FormData` interface, `initialFormData`, the right step's JSX, `validateStep(n)`, **and the `submissionData` object in `handleSubmit`** (that's what gets sent). Give the input a stable `id`.
+2. `lib/submission-fields.ts`: add it to `EDITABLE_SUBMISSION_FIELDS`. Checkout drops any field not on this list. `app/api/checkout/route.ts` itself needs no change; it spreads the filtered data.
 3. `app/api/admin/submissions/[id]/approve/route.ts`: copy it into the `classes` insert. **This is the step that gets forgotten.**
 4. `components/admin/SubmissionDetail.tsx`: show it to the admin
 5. `components/dashboard/UserSubmissionDetail.tsx`: show it, and include it in the sessionStorage edit payload

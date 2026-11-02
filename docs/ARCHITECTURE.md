@@ -9,8 +9,8 @@ Map of where things live. Verified against the repo on 2026-11-01.
 | `/` | Homepage |
 | `/classes` | Browse: search, filter (state, category, attendance type), sort, paginate 20/page |
 | `/classes/[id]` | Class detail |
-| `/submit` | 4-step submit wizard, gated by `SubmitClassGate` / `PaymentGate` |
-| `/submit/success` | Post-checkout landing. Flips `pending_payment` to `pending` if the webhook hasn't yet. |
+| `/submit` | Payment gate first (`PaymentGate`), then the 4-step wizard (`SubmitClassForm`). `SubmitClassGate` picks which to show. Verifies `?paid=<session>` server side and ignores sessions already used by a submission. |
+| `/submit/success` | Post-submit landing (`?method=admin\|coupon\|edit`). For legacy `pending_payment` edits paid via Stripe (`?session_id=`), flips the row to `pending` if the webhook hasn't yet. |
 | `/dashboard` | User's own submissions and status |
 | `/dashboard/submissions/[id]` | User submission detail, edit / resubmit |
 | `/admin` | Admin tabs: submissions + coupons. Checks `is_admin` server side. |
@@ -22,12 +22,12 @@ Map of where things live. Verified against the repo on 2026-11-01.
 
 | Route | Job |
 |---|---|
-| `checkout` | New and edited submissions. Coupon path skips Stripe. |
-| `payment-gate` | Validates coupon / payment before the form |
-| `webhooks/stripe` | `checkout.session.completed` sets status to `pending` |
-| `admin/submissions/[id]/approve` | Sets `approved`, copies row into `classes` |
-| `admin/submissions/[id]/reject` | Sets `rejected`, requires `rejection_reason` |
-| `admin/coupons`, `admin/coupons/[id]` | Coupon CRUD, admin only |
+| `checkout` | Writes new and edited submissions. New: admin (free), coupon (claims a use), or a verified Stripe session (one submission per payment). Edit: by original status (see below). Only fields in `lib/submission-fields.ts` are accepted from the client. |
+| `payment-gate` | Before the form: validates a coupon (read only, no use counted yet) or creates the $5 Stripe Checkout session with `metadata.userId` only |
+| `webhooks/stripe` | `checkout.session.completed`: sets `pending` only when `metadata.submissionId` exists (legacy `pending_payment` edits). Payment-gate sessions are skipped on purpose. |
+| `admin/submissions/[id]/approve` | Sets `approved`, copies row into `classes` (hard-deletes the class if the status update fails) |
+| `admin/submissions/[id]/reject` | Sets `rejected`. `rejection_reason` is optional. |
+| `admin/coupons`, `admin/coupons/[id]` | List, create, delete. No update. Admin only. |
 | `auth/logout`, `auth/update-password` | Auth helpers |
 | `cleanup/expired-submissions` | POST with `Authorization: Bearer $CRON_SECRET` |
 
@@ -42,6 +42,10 @@ Plus `app/auth/callback/route.ts`: email verification. Exchanges the code and up
 | `lib/supabase-admin.ts` → `getSupabaseAdmin()` | Service role. Server only. Bypasses RLS. Use sparingly. |
 | `lib/stripe-server.ts` → `getStripeServer()` | Stripe server SDK. Call inside handlers. |
 | `lib/stripe.ts` → `getStripe()` | Stripe.js in the browser |
+| `lib/coupons.ts` | `getUsableCoupon()`, `claimCouponUse()`. All coupon checks go through here. Server only. |
+| `lib/submission-fields.ts` | `pickSubmissionFields()`, the allowlist of user-editable listing fields |
+
+Exception: `app/submit/page.tsx` and `app/submit/success/page.tsx` build `new Stripe(...)` (and `success` a service-role client) inline inside the component. Safe for builds, but they skip the helpers.
 
 ## Middleware
 
@@ -57,5 +61,9 @@ Plus `app/auth/callback/route.ts`: email verification. Exchanges the code and up
 
 ## Edit flow detail
 
-- Edit and template data pass to the form through `sessionStorage` (`submissionTemplate`, plus `?edit=` / `?template=` params)
-- `checkout` decides new vs update based on `originalSubmissionId`
+- `components/dashboard/UserSubmissionDetail.tsx` writes `sessionStorage.submissionEdit` and goes to `/submit?edit=true`, or writes `submissionTemplate` and goes to `/submit?template=true`. The form reads and clears the key.
+- Edit skips the payment gate. Template ("submit another like this") is a new submission and goes through the gate.
+- `checkout` decides new vs update based on `originalSubmissionId`. On update, by original status:
+  - `rejected` / `pending` → update and reset to `pending`
+  - `approved` → update the submission **and the live `classes` row** directly (no re-review)
+  - `pending_payment` → update; then save only (`editClassOnly`), claim a coupon, or start a Stripe session with `metadata.submissionId`

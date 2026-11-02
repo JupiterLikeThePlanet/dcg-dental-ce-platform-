@@ -8,7 +8,7 @@
 - App Router only. No `pages/`.
 - Server Components by default. Add `'use client'` only for state, effects, or browser APIs.
 - API routes must be named `route.ts`. A file like `approve-route.ts` is dead code.
-- `searchParams` is typed as a Promise and awaited in `app/classes/page.tsx`. That works in 14 but it's a Next 15 habit. Don't copy it elsewhere; use the plain object type.
+- House style: `params` / `searchParams` typed as a Promise and awaited, and `await cookies()`. It's a Next 15 habit, but it works in 14 and is already used across 11 route/page files. Match it for consistency; don't mix styles in one file.
 - Use `next/link` and `next/image`. Images are `unoptimized: true` in `next.config.js`.
 
 ## Supabase

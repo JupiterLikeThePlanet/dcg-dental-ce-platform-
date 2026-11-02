@@ -53,14 +53,14 @@ database. Mess it up all you want — production is completely untouched.
 
 ## 2. Branch Strategy
 
-Think of branches like parallel versions of your codebase. Here is the structure we use:
+Work happens on a feature branch. `main` is production. `staging` is the long-lived branch that gets tested before anything merges to `main`.
 
 ```
-main          ← live production code. Only merge here when something is ready to ship.
+main              ← live production code. Merge here only when something is ready to ship.
   │
-  ├── QA      ← current branch. Bug fixes, tests, quality improvements.
-  │
-  └── staging ← (to be created) mirrors what's about to go live. Tests run here.
+  └── staging     ← already exists. Pre-production. Test here before merging to main.
+        │
+        └── feature branches   ← where you edit. QA is one old example, not the branch to use.
 ```
 
 ### What each branch is for
@@ -71,16 +71,15 @@ main          ← live production code. Only merge here when something is ready 
 - Never develop directly on main
 - Never run Playwright tests against the production database
 
-**`QA`** (your current branch)
-- Where you are right now
-- Contains: bug fixes (logout, auth callback), the city→state filter change, Playwright test setup,
-  middleware, admin table UX improvements
-- When finished, open a Pull Request from QA → main
+**Feature branches**
+- Make the change on a branch you create from `main` (`git checkout -b my-feature-name`)
+- Check the name with `git branch --show-current` before you commit or push
+- `QA` is an older feature branch (logout, auth callback, city→state filter, Playwright setup). It is not the current working branch. Do not commit new work onto it.
 
-**`staging`** (to be created — see Section 3)
-- A long-lived branch that mirrors what's about to go to production
-- Tests are run here before merging to main
-- Connected to the staging Supabase project (not production)
+**`staging`**
+- Already exists locally and on origin. Do not create it again.
+- Mirrors what's about to go to production
+- Playwright always targets the staging Supabase project, from whatever git branch you have checked out
 
 ### The golden rule
 
@@ -90,70 +89,13 @@ main          ← live production code. Only merge here when something is ready 
 
 ## 3. Your Current Situation
 
-Here is exactly where things stand and what to do, in order:
+Follow Section 11 for the path from a change to production. An earlier draft of this section is obsolete. It told you to:
 
-### Step 1 — Commit the new test files on your QA branch
+- commit `tests/e2e/admin.spec.ts` and `tests/e2e/dashboard.spec.ts` (those files are already in the repo)
+- push the `QA` branch (that is not the branch you should be on)
+- run `git checkout -b staging` (that branch already exists)
 
-Right now two test files exist on disk but are not yet committed:
-- `tests/e2e/admin.spec.ts`
-- `tests/e2e/dashboard.spec.ts`
-
-Open your terminal, navigate to the project, and run:
-
-```bash
-cd "/Volumes/Joop 3/coding_projects/DCG-Dental-APP/dca-code-base-test/dcg-dental-ce-platform (NEXT JS VERSION)"
-
-git add tests/e2e/admin.spec.ts tests/e2e/dashboard.spec.ts .gitignore
-
-git commit -m "QA: add dashboard and admin e2e tests, ignore playwright output dirs"
-```
-
-### Step 2 — Push QA branch to GitHub
-
-```bash
-git push origin QA
-```
-
-If this is the first time pushing QA:
-
-```bash
-git push -u origin QA
-```
-
-**Why push QA?** It backs up your work remotely and lets you open a Pull Request later.
-The test files live on this branch. You are not touching main yet.
-
-### Step 3 — Create the staging branch
-
-```bash
-git checkout main
-git pull origin main
-git checkout -b staging
-git push -u origin staging
-```
-
-**What just happened:**
-- You switched to main and pulled the latest code
-- You created a new branch called `staging` from main
-- You pushed it to GitHub so it exists remotely
-
-### Step 4 — Merge QA into staging
-
-```bash
-git checkout staging
-git merge QA
-git push origin staging
-```
-
-Now staging has all of your QA fixes AND the tests. This is the branch you will run tests on.
-
-### Step 5 — Leave QA open for now
-
-Do not delete QA. It is your working branch for ongoing fixes. The branch hierarchy going forward:
-
-```
-main ← staging ← QA ← (future feature branches)
-```
+Before any git command, run `git branch --show-current` and `git status`. Commit only on the feature branch those commands show.
 
 ---
 
@@ -172,49 +114,26 @@ This is the most important section for protecting your live data.
 
 ### Step 2 — Duplicate your database schema
 
-You need to copy the table structure (but NOT the data) from production to staging.
+> **Updated:** staging already exists. Don't copy schema from production with scripts.
+> The source of truth is now `supabase/migrations/` in this repo (starting with
+> `000_baseline.sql`, dumped from **staging**). Follow `docs/GUARDRAILS.md` and the
+> `dcg-migration` skill: changes go to staging first, then prod only with explicit approval.
 
-**In your production Supabase project:**
-1. Go to **Settings → Database**
-2. Click **"Database Migrations"** or go to **SQL Editor**
-3. Run this to export your schema:
+To rebuild a fresh staging project, run the files in `supabase/migrations/` in order in
+the new project's SQL Editor.
 
-In the SQL Editor, run:
-```sql
--- This shows your table structures. Copy the output.
-SELECT 
-  table_name,
-  column_name,
-  data_type,
-  is_nullable,
-  column_default
-FROM information_schema.columns
-WHERE table_schema = 'public'
-ORDER BY table_name, ordinal_position;
-```
-
-**Easier method — use Supabase CLI (recommended):**
+To refresh the baseline from staging (never prod):
 
 ```bash
-# Install Supabase CLI if you haven't
-brew install supabase/tap/supabase
+# Option A: CLI linked to staging (needs Docker running)
+supabase link --project-ref duqgdsrvaxucbckqkygo
+supabase db dump --linked --schema public -f supabase/migrations/000_baseline.sql
 
-# Log in
-supabase login
-
-# Pull your production schema
-supabase db dump --db-url "YOUR_PRODUCTION_DB_URL" > schema.sql
-
-# Push it to staging
-supabase db push --db-url "YOUR_STAGING_DB_URL" < schema.sql
+# Option B: pg_dump with the STAGING connection string
+pg_dump --schema-only --schema=public "<staging connection string>" > supabase/migrations/000_baseline.sql
 ```
 
-Your production DB URL is found in Supabase → Settings → Database → Connection string (URI).
-
-**If the CLI feels complicated**, the manual approach:
-1. In your production project → SQL Editor → look through your existing tables
-2. In your staging project → SQL Editor → recreate the same tables by copy-pasting the
-   table creation SQL from your migrations folder (if you have one)
+Don't use `supabase db push` from a laptop; it's blocked in `.claude/settings.json` on purpose.
 
 ### Step 3 — Copy your RLS policies
 
@@ -253,7 +172,16 @@ SUPABASE_SERVICE_ROLE_KEY=your-staging-service-role-key
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_xxxxxxxxxxxx
 STRIPE_SECRET_KEY=sk_test_xxxxxxxxxxxx
 STRIPE_WEBHOOK_SECRET=whsec_xxxxxxxxxxxx
+
+# Playwright test accounts (staging only) — read by tests/e2e/helpers/test-utils.ts
+TEST_USER_EMAIL=your-staging-test-user-email
+TEST_USER_PASSWORD=your-staging-test-user-password
+TEST_ADMIN_EMAIL=your-staging-test-admin-email
+TEST_ADMIN_PASSWORD=your-staging-test-admin-password
 ```
+
+`playwright.config.ts` loads `.env.local` itself (Node's built-in `process.loadEnvFile`), so
+the `TEST_*` vars are available to the specs without extra setup.
 
 > **Critical:** When running tests locally, your `.env.local` must point to staging Supabase,
 > NOT production. Double-check the URL before running any destructive tests.
@@ -276,8 +204,8 @@ The tests expect two specific users to exist. Create them in your **staging** Su
 
 1. In your staging Supabase project, go to **Authentication → Users**
 2. Click **"Add user" → "Create new user"**
-3. Email: `testuser@example.com`
-4. Password: `testpassword123`
+3. Email: the value you'll put in `TEST_USER_EMAIL`
+4. Password: a strong password; put it in `TEST_USER_PASSWORD` in `.env.local`
 5. Click **"Create user"**
 6. Then in your staging app, go through the signup flow OR manually confirm the email:
    In Supabase → Authentication → Users → find the user → click the three dots → "Send magic link"
@@ -285,13 +213,11 @@ The tests expect two specific users to exist. Create them in your **staging** Su
 
 ### Create the test admin user
 
-Same steps with:
-- Email: `testadmin@example.com`
-- Password: `testpassword123`
+Same steps, using `TEST_ADMIN_EMAIL` / `TEST_ADMIN_PASSWORD`.
 
 Then make them an admin:
 1. Go to Supabase → **Table Editor → users table**
-2. Find the row for `testadmin@example.com`
+2. Find the row for the test admin's email
 3. Set `is_admin` to `true`
 4. Save
 
@@ -300,12 +226,13 @@ Then make them an admin:
 The status-specific tests (pending_payment, pending, rejected, approved) need submissions
 in the database. The easiest way:
 
-1. Log in to your staging app as `testuser@example.com`
-2. Submit 4 test classes using the submit form
-3. Log in as `testadmin@example.com` and approve one, reject one
-4. Leave one as pending, and one in the table as pending_payment (do not complete payment)
+1. Log in to your staging app as the test user
+2. Submit 3 test classes using the submit form (use a staging coupon or a Stripe test card)
+3. Log in as the test admin and approve one, reject one, leave one pending
+4. `pending_payment` can no longer be created through the UI (payment now happens before
+   the form). To get one, set a staging row's `status` to `pending_payment` in the Table Editor.
 
-Now `testuser@example.com` has one submission of each status, and the tests can find them.
+Now the test user has one submission of each status, and the tests can find them.
 
 ---
 
@@ -637,13 +564,14 @@ tests/
 
 ### Test user credentials (staging only)
 
-| User | Email | Password | Role |
-|---|---|---|---|
-| Regular user | `testuser@example.com` | `testpassword123` | Standard user |
-| Admin user | `testadmin@example.com` | `testpassword123` | Admin (is_admin = true) |
+| User | Env vars | Role |
+|---|---|---|
+| Regular user | `TEST_USER_EMAIL`, `TEST_USER_PASSWORD` | Standard user |
+| Admin user | `TEST_ADMIN_EMAIL`, `TEST_ADMIN_PASSWORD` | Admin (is_admin = true) |
 
-These credentials are hardcoded in `tests/e2e/helpers/test-utils.ts`.
-They exist only in the staging Supabase project — never in production.
+`tests/e2e/helpers/test-utils.ts` reads these from the environment (`.env.local`). They used to be
+hardcoded in the repo, so rotate the old staging passwords. These accounts exist only in the
+staging Supabase project — never in production.
 
 ### npm scripts
 
@@ -682,7 +610,7 @@ npm run build && npm run start
 
 ### Tests fail with login errors
 
-1. Check that `testuser@example.com` exists in your staging Supabase project
+1. Check that the `TEST_USER_EMAIL` account exists in your staging Supabase project
 2. Check that their email is confirmed (Authentication → Users → check the "Confirmed" column)
 3. Check that `.env.local` points to staging
 4. Try logging in manually at `http://localhost:3000/login` with those credentials
@@ -705,7 +633,7 @@ The test admin user either:
 - Does not exist in staging
 - Exists but `is_admin` is not set to `true` in the users table
 
-Fix in Supabase → Table Editor → users → find testadmin@example.com → set is_admin = true.
+Fix in Supabase → Table Editor → users → find the `TEST_ADMIN_EMAIL` account → set is_admin = true.
 
 ---
 

@@ -1,6 +1,6 @@
 import Link from 'next/link';
-import Stripe from 'stripe';
-import { createClient } from '@supabase/supabase-js';
+import { getStripeServer } from '@/lib/stripe-server';
+import { getSupabaseAdmin } from '@/lib/supabase-admin';
 
 interface SuccessPageProps {
   searchParams: Promise<{ method?: string; session_id?: string }>;
@@ -16,14 +16,11 @@ export default async function SubmitSuccessPage({ searchParams }: SuccessPagePro
   // and a reliable fallback in prod. The webhook does the same update but is idempotent.
   if (sessionId) {
     try {
-      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+      const stripe = getStripeServer();
       const session = await stripe.checkout.sessions.retrieve(sessionId);
 
       if (session.payment_status === 'paid' && session.metadata?.submissionId) {
-        const supabaseAdmin = createClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.SUPABASE_SERVICE_ROLE_KEY!
-        );
+        const supabaseAdmin = getSupabaseAdmin();
         // Only update if still pending_payment — webhook may have already fired
         await supabaseAdmin
           .from('submissions')
@@ -108,7 +105,7 @@ export default async function SubmitSuccessPage({ searchParams }: SuccessPagePro
             </li>
             <li className="flex items-start gap-2">
               <span className="bg-gray-200 text-gray-700 rounded-full w-5 h-5 flex items-center justify-center text-xs font-medium flex-shrink-0">2</span>
-              <span>You&apos;ll receive an email when your class is approved</span>
+              <span>Check your dashboard to see when your class is approved</span>
             </li>
             <li className="flex items-start gap-2">
               <span className="bg-gray-200 text-gray-700 rounded-full w-5 h-5 flex items-center justify-center text-xs font-medium flex-shrink-0">3</span>

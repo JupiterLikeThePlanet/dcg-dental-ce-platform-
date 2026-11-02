@@ -29,7 +29,7 @@ Map of where things live. Verified against the repo on 2026-11-01.
 | `admin/submissions/[id]/reject` | Sets `rejected`. `rejection_reason` is optional. |
 | `admin/coupons`, `admin/coupons/[id]` | List, create, delete. No update. Admin only. |
 | `auth/logout`, `auth/update-password` | Auth helpers |
-| `cleanup/expired-submissions` | POST with `Authorization: Bearer $CRON_SECRET` |
+| `cleanup/expired-submissions` | GET (for Vercel Cron; **not scheduled yet**, no `vercel.json`) or POST (manual), both with `Authorization: Bearer $CRON_SECRET`. Hard-deletes approved submissions and their classes once `end_date` is over a year old. |
 
 Plus `app/auth/callback/route.ts`: email verification. Exchanges the code and upserts the `public.users` row.
 
@@ -44,8 +44,6 @@ Plus `app/auth/callback/route.ts`: email verification. Exchanges the code and up
 | `lib/stripe.ts` → `getStripe()` | Stripe.js in the browser |
 | `lib/coupons.ts` | `getUsableCoupon()`, `claimCouponUse()`. All coupon checks go through here. Server only. |
 | `lib/submission-fields.ts` | `pickSubmissionFields()`, the allowlist of user-editable listing fields |
-
-Exception: `app/submit/page.tsx` and `app/submit/success/page.tsx` build `new Stripe(...)` (and `success` a service-role client) inline inside the component. Safe for builds, but they skip the helpers.
 
 ## Middleware
 

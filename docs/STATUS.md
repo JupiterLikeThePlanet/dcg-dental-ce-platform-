@@ -14,12 +14,13 @@ Last checked against the repo: 2026-11-01. Last commit on `main`: 2026-05-01 (at
 - Mobile responsive pass
 - Lazy init for Stripe and Supabase server clients
 - Staging Supabase project + Playwright suite (admin, dashboard, signup, submit-class)
-- Audit fixes (2026-11-02, branch `docs-and-sql-update`, **not yet committed or deployed**):
+- Audit fixes (2026-11-02, branch `docs-and-sql-update`, committed `9388036`, **not yet deployed**):
   - One Stripe payment = one submission (`checkout` + `/submit` reject a reused payment intent)
   - Checkout only accepts allowlisted listing fields (`lib/submission-fields.ts`)
   - Coupons: `expires_at` enforced, race-safe use counting, lookups via service role (`lib/coupons.ts`)
   - Dead `timezone` form field removed
   - Playwright creds moved to `TEST_*` env vars; generated files untracked
+- Follow-ups (2026-11-02, same branch, not yet deployed): deleted stray `approve-route.ts`, removed `@supabase/auth-helpers-nextjs`, cleanup route accepts GET (cron-ready, not scheduled), ESLint config added (`npm run lint` works), success page no longer promises an email, submit pages use the `lib/` Stripe and Supabase helpers
 
 ## Open
 - [ ] Run Playwright against staging with the audit fixes (staging DB was unreachable on 2026-11-02)
@@ -28,7 +29,6 @@ Last checked against the repo: 2026-11-01. Last commit on `main`: 2026-05-01 (at
 - [ ] Migration: drop any `authenticated` SELECT policy on `coupon_codes` (app no longer needs it). Verify against the baseline first.
 - [ ] Decide: should editing an approved listing go back to review? Today it updates the live class immediately.
 - [ ] Decide: finish soft delete (nothing sets `deleted_at`; cleanup hard-deletes) or drop the column
-- [ ] `/submit/success` promises an approval email that doesn't exist. Change the copy or build the email.
 - [ ] No recovery for "paid but didn't submit" beyond revisiting the same `/submit?paid=` URL
 - [ ] Admin coupon UI can't set `expires_at` or `max_uses`
 - [ ] Commit the real DB schema. `schema.sql`, `types/database.ts`, and migrations are all empty.
@@ -36,9 +36,8 @@ Last checked against the repo: 2026-11-01. Last commit on `main`: 2026-05-01 (at
 - [ ] Confirm Stripe live mode is set in Vercel Production and the live webhook works
 - [ ] Confirm Supabase Auth Site URL / redirects use dcgdental.com
 - [ ] Confirm the email template is live in prod, and whether custom SMTP is set
-- [ ] Schedule the cleanup route. No `vercel.json` cron exists, and the route only accepts POST while Vercel Cron sends GET.
-- [ ] Delete the stray `approve-route.ts`
-- [ ] Remove `@supabase/auth-helpers-nextjs` from package.json
+- [ ] Schedule the cleanup cron: settle soft delete first (it hard-deletes), then add `vercel.json` with `{"crons":[{"path":"/api/cleanup/expired-submissions","schedule":"0 9 * * *"}]}`, confirm `CRON_SECRET` in Vercel Production, and check the first run in Vercel logs.
+- [ ] Toast.tsx `useEffect` missing-dependency lint warning (left alone; changing it could alter behavior)
 - [ ] Write the non-technical launch guide for Russell
 - [ ] Co-owner access handoff (GitHub, Vercel, Supabase, Stripe, DNS)
 - [ ] Decide if numeric AGD codes are still needed

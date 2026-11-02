@@ -38,7 +38,7 @@ Produce a checklist with a status for every line: ✅ verified, ❌ broken, ❓ 
 - [ ] No leftover test data or test coupons in prod
 
 ## Scheduled jobs
-- [ ] Cleanup route is scheduled somewhere. Note: it only accepts POST, Vercel Cron sends GET.
+- [ ] If a `vercel.json` cron for `/api/cleanup/expired-submissions` exists, its last run in Vercel logs returned 200 (not 401). If none exists, cleanup isn't scheduled; check STATUS.md for whether that's still intended.
 
 ## Output
 - The checklist with statuses

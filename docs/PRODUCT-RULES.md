@@ -41,7 +41,7 @@ Business logic the code can't explain on its own. If a request conflicts with a 
 - Street address is recommended, not required, for on-site and hybrid. City and state are required for every attendance type, remote included.
 - All 50 states are allowed (no DC). The form defaults to `LA`; the client is Louisiana-based, so expect Gulf South listings.
 - Classes whose `end_date` has passed are hidden from browse.
-- Approved submissions older than one year past `end_date` get cleaned up by `/api/cleanup/expired-submissions`.
+- Approved submissions older than one year past `end_date` get hard-deleted (submission and class) by `/api/cleanup/expired-submissions`. Nothing runs it on a schedule yet; adding the cron is on hold until the soft-delete decision.
 
 ## Look and feel
 
@@ -50,6 +50,6 @@ Business logic the code can't explain on its own. If a request conflicts with a 
 
 ## Parked (don't build unless asked)
 
-- Email notifications (approval / rejection emails). There's a TODO in the reject route. Note: `/submit/success` currently tells users "You'll receive an email when your class is approved," which isn't true yet.
+- Email notifications (approval / rejection emails). There's a TODO in the reject route. `/submit/success` points users to their dashboard instead of promising an email.
 - Calendar view
 - Anything that hosts course content or handles class registration

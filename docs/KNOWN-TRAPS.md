@@ -6,14 +6,14 @@ Mistakes Claude (and humans) have already made on this project, plus the ones it
 
 | Trap | Truth |
 |---|---|
-| Importing `@supabase/auth-helpers-nextjs` | Deprecated. Still in package.json, imported nowhere. Use `@supabase/ssr`. |
+| Importing `@supabase/auth-helpers-nextjs` | Deprecated and uninstalled. Use `@supabase/ssr`. |
 | `new Stripe(...)` or `createClient(...)` at the top of a route file | Breaks Vercel builds ("supabaseUrl is required", "Neither apiKey nor config.authenticator provided"). Create inside the handler. |
 | Next 15-only APIs (`after()`, `connection()`, `use cache`, async-only request APIs) | This is Next 14 (14.2). `await cookies()` and Promise-typed `params` are fine and already the house style (see `CONVENTIONS.md`), but don't reach for APIs that don't exist in 14. |
 | Spreading the request body into a DB write (`...submissionData`) | Run it through `pickSubmissionFields()` first. Raw spreads let a user set `status`, `deleted_at`, etc. |
 | Checking coupons with the user's Supabase client | Use `lib/coupons.ts`. It checks expiry and counts uses safely. |
 | Writing `pages/` or `getServerSideProps` | App Router only |
 | Tailwind v4 syntax (`@import "tailwindcss"`, `@theme`) | Repo is on Tailwind v3 |
-| Naming an API file `approve-route.ts` | Next only routes `route.ts`. A stray `app/admin/submissions/[id]/approve/approve-route.ts` already exists and does nothing. |
+| Naming an API file `approve-route.ts` | Next only routes `route.ts`. A stray `app/admin/submissions/[id]/approve/approve-route.ts` used to exist and did nothing (deleted 2026-11-02). |
 | Assuming an email service exists | None in code. Auth emails come from Supabase. |
 | Assuming `types/database.ts` or `schema.sql` has the schema | Both are empty files |
 | Assuming migrations live in `supabase/migrations` | Folder is empty and gitignored |

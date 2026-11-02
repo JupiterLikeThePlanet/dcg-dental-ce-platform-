@@ -19,7 +19,7 @@ Names only. Never write secret values into this file or any other tracked file.
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | yes | `pk_test_` or `pk_live_` |
 | `STRIPE_SECRET_KEY` | **no** | `sk_test_` or `sk_live_` |
 | `STRIPE_WEBHOOK_SECRET` | **no** | different per webhook endpoint |
-| `CRON_SECRET` | **no** | guards the cleanup route |
+| `CRON_SECRET` | **no** | guards the cleanup route. Vercel Cron sends it automatically as a Bearer header when set in the project. |
 
 ## Where each environment points
 

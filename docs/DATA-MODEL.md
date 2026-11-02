@@ -25,7 +25,7 @@ Created two ways, on purpose: a DB trigger on signup, and an upsert in `app/auth
 ### `submissions`
 Everything a provider sends in, any status.
 
-- Content: `title`, `description`, `category`, `attendance_type`
+- Content: `title` (max 100 chars, DB check), `description` (max 1000 chars, DB check), `category`, `attendance_type`
 - When: `start_date`, `end_date`, `start_time`, `end_time`
 - Where: `address_line1`, `address_line2`, `city`, `state`, `zip_code`
 - Who: `instructor_name`, `provider_name`, `contact_email`, `contact_phone`

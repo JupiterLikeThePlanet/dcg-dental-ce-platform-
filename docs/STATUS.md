@@ -22,6 +22,7 @@ Last checked against the repo: 2026-11-01. Last commit on `main`: 2026-05-01 (at
   - Playwright creds moved to `TEST_*` env vars; generated files untracked
 - Follow-ups (2026-11-02, same branch, not yet deployed): deleted stray `approve-route.ts`, removed `@supabase/auth-helpers-nextjs`, cleanup route accepts GET (cron-ready, not scheduled), ESLint config added (`npm run lint` works), success page no longer promises an email, submit pages use the `lib/` Stripe and Supabase helpers
 - Security: four `SECURITY DEFINER` functions (`admin_delete_user`, `approve_submission`, `reject_submission`, `validate_coupon`) were callable by anyone. Locked down by `supabase/migrations/001_lock_down_definer_functions.sql`, applied and verified on staging and prod 2026-11-02.
+- Staging schema matches prod (migration 002 added prod's title/description length checks to staging; structure fingerprints identical 2026-11-02).
 
 ## Open
 - [ ] Run Playwright against staging with the audit fixes (staging DB was unreachable on 2026-11-02)

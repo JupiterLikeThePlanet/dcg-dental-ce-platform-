@@ -17,6 +17,8 @@ Business logic the code can't explain on its own. If a request conflicts with a 
 
 ## Listing fee
 
+- **Currently free.** The paywall is behind the `PAYWALL_ENABLED` env var (`lib/paywall.ts`). It's on only when the value is exactly `true`; anything else, or unset, means off. Off (the live setting since the client asked for free listings): no payment gate, no admin Coupons tab, `/api/payment-gate` returns 404, checkout inserts new submissions as `pending` with `payment_amount: null`, and admin views hide the Payment and Stripe ID fields. Admin approval still gates every listing. All Stripe, coupon and webhook code and the `coupon_codes` policies stay in place for turning it back on.
+- The rules below apply when the paywall is on.
 - $5, one time, per listing. Not a subscription.
 - The fee exists mostly to stop spam, not to make money. Don't add upsells.
 - A valid coupon skips Stripe entirely. Valid = active, not past `expires_at`, under `max_uses`.
@@ -24,7 +26,7 @@ Business logic the code can't explain on its own. If a request conflicts with a 
 
 ## Submission lifecycle
 
-1. User opens `/submit` and hits the payment gate first: pay $5 via Stripe, or enter a coupon. Admins skip the gate.
+1. User opens `/submit`. Paywall off: the form shows right away. Paywall on: they hit the payment gate first (pay $5 via Stripe or enter a coupon). Admins always skip the gate.
 2. User fills the 4-step form. On submit, the row is inserted directly as `pending`.
    - One Stripe payment creates exactly one submission. A used payment can't be reused.
    - If a user pays and leaves before submitting, the payment is only usable by returning to the same `/submit?paid=…` URL. There's no "unused payment" recovery yet.

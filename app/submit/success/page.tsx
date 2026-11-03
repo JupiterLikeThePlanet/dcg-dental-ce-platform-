@@ -53,6 +53,13 @@ export default async function SubmitSuccessPage({ searchParams }: SuccessPagePro
           icon: '🎟️',
           color: 'green',
         };
+      case 'free':
+        return {
+          title: 'Submission Received!',
+          description: 'Your class has been submitted for review.',
+          icon: '✓',
+          color: 'green',
+        };
       case 'edit':
         return {
           title: 'Changes Saved!',

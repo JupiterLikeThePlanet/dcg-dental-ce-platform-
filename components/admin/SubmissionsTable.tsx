@@ -23,11 +23,14 @@ interface Submission {
 interface SubmissionsTableProps {
   submissions: Submission[];
   emptyMessage?: string;
+  /** Paywall on: show the Payment column. Off: hide every money reference. */
+  showPayment: boolean;
 }
 
-export default function SubmissionsTable({ 
-  submissions, 
-  emptyMessage = 'No submissions found' 
+export default function SubmissionsTable({
+  submissions,
+  emptyMessage = 'No submissions found',
+  showPayment,
 }: SubmissionsTableProps) {
   if (submissions.length === 0) {
     return (
@@ -76,7 +79,7 @@ export default function SubmissionsTable({
               <span>{submission.city}, {submission.state} · {formatDate(submission.start_date)}</span>
               <span>{submission.users?.full_name || submission.users?.email?.split('@')[0] || 'Unknown'}</span>
             </div>
-            {(submission.coupon_code || submission.payment_amount != null) && (
+            {showPayment && (submission.coupon_code || submission.payment_amount != null) && (
               <div className="text-xs">
                 {submission.coupon_code ? (
                   <span className="text-purple-600">Coupon: {submission.coupon_code}</span>
@@ -109,9 +112,11 @@ export default function SubmissionsTable({
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Class Date
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Payment
-              </th>
+              {showPayment && (
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Payment
+                </th>
+              )}
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Status
               </th>
@@ -156,23 +161,25 @@ export default function SubmissionsTable({
                     {formatDate(submission.start_date)}
                   </p>
                 </td>
-                <td className="px-4 py-4 whitespace-nowrap">
-                  <div className="text-sm">
-                    {submission.coupon_code ? (
-                      <span className="text-purple-600 font-medium">
-                        Coupon: {submission.coupon_code}
-                      </span>
-                    ) : submission.payment_amount === 0 ? (
-                      <span className="text-gray-500">Admin (Free)</span>
-                    ) : submission.payment_amount ? (
-                      <span className="text-green-600">
-                        ${submission.payment_amount.toFixed(2)}
-                      </span>
-                    ) : (
-                      <span className="text-gray-400">-</span>
-                    )}
-                  </div>
-                </td>
+                {showPayment && (
+                  <td className="px-4 py-4 whitespace-nowrap">
+                    <div className="text-sm">
+                      {submission.coupon_code ? (
+                        <span className="text-purple-600 font-medium">
+                          Coupon: {submission.coupon_code}
+                        </span>
+                      ) : submission.payment_amount === 0 ? (
+                        <span className="text-gray-500">Admin (Free)</span>
+                      ) : submission.payment_amount ? (
+                        <span className="text-green-600">
+                          ${submission.payment_amount.toFixed(2)}
+                        </span>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
+                    </div>
+                  </td>
+                )}
                 <td className="px-4 py-4 whitespace-nowrap">
                   <StatusBadge status={submission.status} />
                 </td>

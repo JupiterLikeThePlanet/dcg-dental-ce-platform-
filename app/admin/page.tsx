@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import AdminToast from '@/components/admin/AdminToast';
 import AdminTabView from '@/components/admin/AdminTabView';
+import { isPaywallEnabled } from '@/lib/paywall';
 
 export const dynamic = 'force-dynamic';
 
@@ -224,6 +225,7 @@ export default async function AdminPage({ searchParams }: PageProps) {
         statusTabs={statusTabs}
         statusFilter={statusFilter}
         error={error?.message ?? null}
+        paywallEnabled={isPaywallEnabled()}
       />
     </div>
   );

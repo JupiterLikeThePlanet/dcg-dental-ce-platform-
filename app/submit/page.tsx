@@ -5,6 +5,7 @@ import { getStripeServer } from '@/lib/stripe-server';
 import SubmitClassGate from '@/components/submit/SubmitClassGate';
 import CanceledNotice from '@/components/submit/CanceledNotice';
 import { getSupabaseAdmin } from '@/lib/supabase-admin';
+import { isPaywallEnabled } from '@/lib/paywall';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,12 +35,13 @@ export default async function SubmitClassPage({ searchParams }: PageProps) {
     redirect('/login?redirect=/submit');
   }
 
-  const canceled = params.canceled === 'true';
+  const paywallEnabled = isPaywallEnabled();
+  const canceled = paywallEnabled && params.canceled === 'true';
 
   // Verify a Stripe payment session when redirected back from checkout
   let verifiedStripeSessionId: string | null = null;
   const paidParam = typeof params.paid === 'string' ? params.paid : null;
-  if (paidParam) {
+  if (paywallEnabled && paidParam) {
     try {
       const stripe = getStripeServer();
       const session = await stripe.checkout.sessions.retrieve(paidParam);
@@ -71,16 +73,19 @@ export default async function SubmitClassPage({ searchParams }: PageProps) {
           Submit a CE Class
         </h1>
         <p className="text-gray-600">
-          List your dental continuing education course for just $5.
+          {paywallEnabled
+            ? 'List your dental continuing education course for just $5.'
+            : 'List your dental continuing education course.'}{' '}
           Your submission will be reviewed and published within 24–48 hours.
         </p>
       </div>
 
-      {/* Payment gate → form */}
+      {/* Payment gate → form (gate skipped when the paywall is off) */}
       <SubmitClassGate
         userId={user.id}
         userEmail={user.email || ''}
         verifiedStripeSessionId={verifiedStripeSessionId}
+        paywallEnabled={paywallEnabled}
       />
     </div>
   );

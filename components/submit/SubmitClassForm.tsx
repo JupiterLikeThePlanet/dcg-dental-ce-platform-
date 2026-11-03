@@ -313,7 +313,7 @@ export default function SubmitClassForm({ userId, userEmail, stripeSessionId, gr
 
       // New submission: all payment paths complete server-side, go to success page
       if (data.success) {
-        const method = data.isAdmin ? 'admin' : data.usedCoupon ? 'coupon' : '';
+        const method = data.isAdmin ? 'admin' : data.isFree ? 'free' : data.usedCoupon ? 'coupon' : '';
         router.push('/submit/success' + (method ? `?method=${method}` : ''));
         return;
       }

@@ -33,9 +33,11 @@ interface Props {
   statusTabs: StatusTab[];
   statusFilter: string;
   error?: string | null;
+  /** From isPaywallEnabled() on the server. When false, the Coupons tab and payment info are hidden. */
+  paywallEnabled: boolean;
 }
 
-export default function AdminTabView({ submissions, emptyMessage, statusTabs, statusFilter, error }: Props) {
+export default function AdminTabView({ submissions, emptyMessage, statusTabs, statusFilter, error, paywallEnabled }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>('submissions');
   const [displayedTab, setDisplayedTab] = useState<Tab>('submissions');
   const [contentVisible, setContentVisible] = useState(true);
@@ -88,15 +90,17 @@ export default function AdminTabView({ submissions, emptyMessage, statusTabs, st
           )}
         </nav>
 
-        {/* Right: view toggle, matching tab underline style */}
-        <div className="flex gap-0">
-          <button onClick={() => switchTab('submissions')} className={tabStyle(activeTab === 'submissions')}>
-            Submissions
-          </button>
-          <button onClick={() => switchTab('coupons')} className={tabStyle(activeTab === 'coupons')}>
-            Coupons
-          </button>
-        </div>
+        {/* Right: view toggle, matching tab underline style (only when coupons are in use) */}
+        {paywallEnabled && (
+          <div className="flex gap-0">
+            <button onClick={() => switchTab('submissions')} className={tabStyle(activeTab === 'submissions')}>
+              Submissions
+            </button>
+            <button onClick={() => switchTab('coupons')} className={tabStyle(activeTab === 'coupons')}>
+              Coupons
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Animated content area */}
@@ -115,7 +119,7 @@ export default function AdminTabView({ submissions, emptyMessage, statusTabs, st
               </div>
             )}
 
-            <SubmissionsTable submissions={submissions} emptyMessage={emptyMessage} />
+            <SubmissionsTable submissions={submissions} emptyMessage={emptyMessage} showPayment={paywallEnabled} />
 
             <p className="text-center text-gray-500 text-sm mt-6">
               Click on any row to view full submission details and approve or reject.

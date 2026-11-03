@@ -3,6 +3,7 @@ import { createServerClient } from '@supabase/ssr';
 import { redirect, notFound } from 'next/navigation';
 import Link from 'next/link';
 import SubmissionDetail from '@/components/admin/SubmissionDetail';
+import { isPaywallEnabled } from '@/lib/paywall';
 
 export const dynamic = 'force-dynamic';
 
@@ -76,7 +77,7 @@ export default async function SubmissionDetailPage({ params }: PageProps) {
       </Link>
 
       {/* Submission Detail Component */}
-      <SubmissionDetail submission={submission as any} />
+      <SubmissionDetail submission={submission as any} showPayment={isPaywallEnabled()} />
     </div>
   );
 }

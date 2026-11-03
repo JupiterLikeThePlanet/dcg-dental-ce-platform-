@@ -155,7 +155,7 @@ test.describe('User Dashboard — Submission Detail (shared)', () => {
 test.describe('User Dashboard — Detail: Pending Payment status', () => {
   test.beforeEach(async ({ page }) => {
     await gotoDashboard(page);
-    await page.click('button:has-text("Pending")');
+    await filterTab(page, 'Pending').click();
     // Find a row that has the "Pending Payment" badge
     const targetRow = page.locator('tbody tr').filter({ hasText: 'Pending Payment' }).first();
     const count = await targetRow.count();
@@ -164,29 +164,16 @@ test.describe('User Dashboard — Detail: Pending Payment status', () => {
     await page.waitForURL(/\/dashboard\/submissions\//, { timeout: 10000 });
   });
 
-  test('shows yellow "Payment Required" notice', async ({ page }) => {
-    await expect(page.locator('h3:has-text("Payment Required")')).toBeVisible();
-  });
-
-  test('"Complete Payment" button is visible in the header', async ({ page }) => {
-    await expect(page.locator('button:has-text("Complete Payment")')).toBeVisible();
+  // The "Payment Required" notice and "Complete Payment" panel were removed when
+  // payment moved before the form (commit a3d6e37). Legacy pending_payment rows
+  // now pay through "Edit Class Details" -> /submit?edit=true.
+  test('shows the Pending Payment badge and no old payment panel', async ({ page }) => {
+    await expect(page.locator('span.rounded-full.text-xs:visible', { hasText: 'Pending Payment' }).first()).toBeVisible();
+    await expect(page.locator('button:has-text("Complete Payment")')).toHaveCount(0);
   });
 
   test('"Edit Class Details" link is visible in the metadata row', async ({ page }) => {
     await expect(page.locator('button:has-text("Edit Class Details")')).toBeVisible();
-  });
-
-  test('clicking "Complete Payment" expands the payment panel', async ({ page }) => {
-    await page.click('button:has-text("Complete Payment")');
-    await expect(page.locator('h3:has-text("Edit Payment Details")')).toBeVisible();
-    await expect(page.locator('button:has-text("Proceed to Payment")')).toBeVisible();
-  });
-
-  test('payment panel can be dismissed with Cancel', async ({ page }) => {
-    await page.click('button:has-text("Complete Payment")');
-    await expect(page.locator('button:has-text("Proceed to Payment")')).toBeVisible();
-    await page.click('button:has-text("Cancel")');
-    await expect(page.locator('button:has-text("Proceed to Payment")')).not.toBeVisible();
   });
 
   test('"Edit Class Details" redirects to /submit?edit=true', async ({ page }) => {
@@ -200,7 +187,7 @@ test.describe('User Dashboard — Detail: Pending Payment status', () => {
 test.describe('User Dashboard — Detail: Pending Review status', () => {
   test.beforeEach(async ({ page }) => {
     await gotoDashboard(page);
-    await page.click('button:has-text("Pending")');
+    await filterTab(page, 'Pending').click();
     const targetRow = page.locator('tbody tr').filter({ hasText: 'Pending Review' }).first();
     const count = await targetRow.count();
     if (count === 0) test.skip(true, 'No pending submission found — seed test data first');
@@ -254,7 +241,7 @@ test.describe('User Dashboard — Detail: Rejected status', () => {
 test.describe('User Dashboard — Detail: Approved status', () => {
   test.beforeEach(async ({ page }) => {
     await gotoDashboard(page);
-    await page.click('button:has-text("Approved")');
+    await filterTab(page, 'Approved').click();
     const targetRow = page.locator('tbody tr').filter({ hasText: 'Approved' }).first();
     const count = await targetRow.count();
     if (count === 0) test.skip(true, 'No approved submission found — seed test data first');

@@ -28,7 +28,7 @@ Last checked against the repo: 2026-11-01. Last commit on `main`: 2026-05-01 (at
 - Playwright specs updated for current UI (attendance type required, optional address/ZIP, filter tabs, template goes through payment gate, no double login).
 
 ## Open
-- [ ] Playwright (chromium, prod build, 2026-11-02): 72 passed, 5 failed, 4 skipped. Remaining failures: 4 need a `pending_payment` submission seeded for the test user; 1 is signup (staging can't send confirmation email, needs custom SMTP). The `chromium-slow` project hasn't been run yet.
+- [ ] Playwright (chromium, prod build, 2026-11-02): all specs pass except signup (staging can't send confirmation email, needs custom SMTP). Test data is already seeded. The `chromium-slow` project hasn't been run yet.
 - [ ] Rotate the staging test passwords (old ones are in git history)
 - [ ] Staging email: custom SMTP (signup returns 500 "Error sending confirmation email"). Check prod's SMTP too.
 - [ ] Migration: unique index on `submissions.stripe_payment_id` (backs the one-payment rule at the DB level)

@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import DashboardContent from '@/components/dashboard/DashboardContent';
+import { purgeCutoffIso } from '@/lib/removal-window';
 
 export const dynamic = 'force-dynamic';
 
@@ -46,8 +47,19 @@ export default async function DashboardPage() {
     .from('submissions')
     .select('id, title, provider_name, city, state, start_date, end_date, status, created_at, rejection_reason')
     .eq('submitted_by', user.id)
+    .is('deleted_at', null)
     .or(`status.neq.approved,end_date.is.null,end_date.gte.${oneYearAgoStr}`)
     .order('created_at', { ascending: false });
+
+  // Listings this user removed that can still be restored. Ones an admin
+  // removed aren't shown: the user can't restore those.
+  const { data: removedSubmissions } = await supabase
+    .from('submissions')
+    .select('id, title, provider_name, status, deleted_at')
+    .eq('submitted_by', user.id)
+    .eq('deleted_by', user.id)
+    .gte('deleted_at', purgeCutoffIso())
+    .order('deleted_at', { ascending: false });
 
   // Calculate stats
   const stats = {
@@ -94,7 +106,11 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        <DashboardContent submissions={submissions || []} stats={stats} />
+        <DashboardContent
+          submissions={submissions || []}
+          removedSubmissions={removedSubmissions || []}
+          stats={stats}
+        />
       </div>
     </div>
   )

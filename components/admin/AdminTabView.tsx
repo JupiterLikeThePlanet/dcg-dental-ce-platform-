@@ -24,6 +24,7 @@ interface Submission {
   payment_amount: number | null;
   coupon_code: string | null;
   created_at: string;
+  deleted_at: string | null;
   users?: { email: string; full_name: string | null };
 }
 

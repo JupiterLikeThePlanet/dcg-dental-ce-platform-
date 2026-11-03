@@ -8,7 +8,7 @@ import { isPaywallEnabled } from '@/lib/paywall';
 
 export const dynamic = 'force-dynamic';
 
-type SubmissionStatus = 'all' | 'pending' | 'approved' | 'rejected';
+type SubmissionStatus = 'all' | 'pending' | 'approved' | 'rejected' | 'removed';
 
 interface PageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -62,16 +62,21 @@ export default async function AdminPage({ searchParams }: PageProps) {
       payment_amount,
       coupon_code,
       created_at,
+      deleted_at,
       users:submitted_by (
         email,
         full_name
       )
-    `)
-    .order('created_at', { ascending: false });
+    `);
 
-  // Apply status filter
-  if (statusFilter !== 'all') {
-    query = query.eq('status', statusFilter);
+  // Removed (soft-deleted) rows only show on the Removed tab, newest removal first
+  if (statusFilter === 'removed') {
+    query = query.not('deleted_at', 'is', null).order('deleted_at', { ascending: false });
+  } else {
+    query = query.is('deleted_at', null).order('created_at', { ascending: false });
+    if (statusFilter !== 'all') {
+      query = query.eq('status', statusFilter);
+    }
   }
 
   const { data: submissions, error } = await query;
@@ -80,31 +85,41 @@ export default async function AdminPage({ searchParams }: PageProps) {
     console.error('Error fetching submissions:', error);
   }
 
-  // Get counts for each status
+  // Get counts for each status (live rows only)
   const { count: pendingCount } = await supabase
     .from('submissions')
     .select('*', { count: 'exact', head: true })
+    .is('deleted_at', null)
     .eq('status', 'pending');
 
   const { count: approvedCount } = await supabase
     .from('submissions')
     .select('*', { count: 'exact', head: true })
+    .is('deleted_at', null)
     .eq('status', 'approved');
 
   const { count: rejectedCount } = await supabase
     .from('submissions')
     .select('*', { count: 'exact', head: true })
+    .is('deleted_at', null)
     .eq('status', 'rejected');
 
   const { count: totalCount } = await supabase
     .from('submissions')
-    .select('*', { count: 'exact', head: true });
+    .select('*', { count: 'exact', head: true })
+    .is('deleted_at', null);
+
+  const { count: removedCount } = await supabase
+    .from('submissions')
+    .select('*', { count: 'exact', head: true })
+    .not('deleted_at', 'is', null);
 
   const statusTabs = [
     { key: 'pending', label: 'Pending Review', count: pendingCount || 0 },
     { key: 'approved', label: 'Approved', count: approvedCount || 0 },
     { key: 'rejected', label: 'Rejected', count: rejectedCount || 0 },
     { key: 'all', label: 'All', count: totalCount || 0 },
+    { key: 'removed', label: 'Removed', count: removedCount || 0 },
   ];
 
   // Stat cards configuration with colors and icons
@@ -220,6 +235,8 @@ export default async function AdminPage({ searchParams }: PageProps) {
             ? 'No approved submissions yet.'
             : statusFilter === 'rejected'
             ? 'No rejected submissions.'
+            : statusFilter === 'removed'
+            ? 'Nothing removed in the last 7 days.'
             : 'No submissions found.'
         }
         statusTabs={statusTabs}

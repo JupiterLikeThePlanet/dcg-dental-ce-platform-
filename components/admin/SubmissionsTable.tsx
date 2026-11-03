@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import StatusBadge from './StatusBadge';
+import { formatPurgeDate } from '@/lib/removal-window';
 
 interface Submission {
   id: string;
@@ -14,6 +15,7 @@ interface Submission {
   payment_amount: number | null;
   coupon_code: string | null;
   created_at: string;
+  deleted_at: string | null;
   users?: {
     email: string;
     full_name: string | null;
@@ -74,6 +76,7 @@ export default function SubmissionsTable({
               </p>
               <StatusBadge status={submission.status} />
             </div>
+            {submission.deleted_at && <RemovedNote deletedAt={submission.deleted_at} />}
             <p className="text-xs text-gray-500 mb-2">{submission.provider_name}</p>
             <div className="flex justify-between items-center text-xs text-gray-400 mb-1.5">
               <span>{submission.city}, {submission.state} · {formatDate(submission.start_date)}</span>
@@ -182,6 +185,7 @@ export default function SubmissionsTable({
                 )}
                 <td className="px-4 py-4 whitespace-nowrap">
                   <StatusBadge status={submission.status} />
+                  {submission.deleted_at && <RemovedNote deletedAt={submission.deleted_at} />}
                 </td>
                 <td className="px-4 py-4 whitespace-nowrap">
                   <p className="text-sm text-gray-500">
@@ -195,5 +199,13 @@ export default function SubmissionsTable({
       </div>
     </div>
     </div>
+  );
+}
+
+function RemovedNote({ deletedAt }: { deletedAt: string }) {
+  return (
+    <p className="mt-1 text-xs text-gray-500 whitespace-nowrap">
+      Removed · deletes {formatPurgeDate(deletedAt)}
+    </p>
   );
 }

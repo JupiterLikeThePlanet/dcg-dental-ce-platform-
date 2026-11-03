@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import UserSubmissionsTable from './UserSubmissionsTable';
+import { RECOVERY_DAYS, formatPurgeDate } from '@/lib/removal-window';
 
 type StatusFilter = 'all' | 'pending' | 'approved' | 'rejected';
 
@@ -19,12 +20,21 @@ interface Submission {
   rejection_reason: string | null;
 }
 
+interface RemovedSubmission {
+  id: string;
+  title: string;
+  provider_name: string;
+  status: 'pending_payment' | 'pending' | 'approved' | 'rejected';
+  deleted_at: string;
+}
+
 interface Props {
   submissions: Submission[];
+  removedSubmissions: RemovedSubmission[];
   stats: { total: number; pending: number; approved: number; rejected: number };
 }
 
-export default function DashboardContent({ submissions, stats }: Props) {
+export default function DashboardContent({ submissions, removedSubmissions, stats }: Props) {
   const [activeFilter, setActiveFilter] = useState<StatusFilter>('all');
 
   const statCards = [
@@ -140,6 +150,33 @@ export default function DashboardContent({ submissions, stats }: Props) {
           </p>
         )}
       </div>
+
+      {/* Recently removed: restorable for RECOVERY_DAYS, then permanently deleted */}
+      {removedSubmissions.length > 0 && (
+        <div className="mt-10">
+          <h2 className="text-lg font-bold text-gray-900">Recently removed</h2>
+          <p className="text-sm text-gray-500 mb-3">
+            Removed listings are kept for {RECOVERY_DAYS} days, then permanently deleted.
+          </p>
+          <ul className="divide-y divide-gray-200 border border-gray-200 rounded-xl bg-gray-50">
+            {removedSubmissions.map((s) => (
+              <li
+                key={s.id}
+                data-testid="removed-submission"
+                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 px-4 py-3"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-gray-700 truncate">{s.title}</p>
+                  <p className="text-xs text-gray-500 truncate">{s.provider_name}</p>
+                </div>
+                <p className="text-xs text-gray-500 whitespace-nowrap">
+                  Permanently deleted on {formatPurgeDate(s.deleted_at)}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </>
   );
 }

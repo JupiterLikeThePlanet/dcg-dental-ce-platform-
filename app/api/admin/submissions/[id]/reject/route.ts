@@ -56,6 +56,14 @@ export async function POST(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'Submission not found' }, { status: 404 });
     }
 
+    // Removed listings must be restored before they can be reviewed
+    if (submission.deleted_at) {
+      return NextResponse.json(
+        { error: 'Submission has been removed. Restore it first.' },
+        { status: 400 }
+      );
+    }
+
     // Check if already processed
     if (submission.status !== 'pending') {
       return NextResponse.json(

@@ -2,20 +2,31 @@
 
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
-import { User, AuthChangeEvent } from '@supabase/supabase-js';
+import { AuthChangeEvent } from '@supabase/supabase-js';
 
-interface UserData {
+export interface HeaderUser {
+  id: string;
+  email: string | null;
+}
+
+export interface HeaderUserData {
   is_admin: boolean;
   full_name: string | null;
 }
 
-const Header: React.FC = () => {
-  const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
-  const [userData, setUserData] = useState<UserData | null>(null);
-  const [isClient, setIsClient] = useState(false);
+interface HeaderProps {
+  initialUser: HeaderUser | null;
+  initialUserData: HeaderUserData | null;
+}
+
+function toHeaderUser(id: string, email: string | undefined | null): HeaderUser {
+  return { id, email: email ?? null };
+}
+
+const Header: React.FC<HeaderProps> = ({ initialUser, initialUserData }) => {
+  const [user, setUser] = useState<HeaderUser | null>(initialUser);
+  const [userData, setUserData] = useState<HeaderUserData | null>(initialUserData);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
@@ -43,29 +54,6 @@ const Header: React.FC = () => {
   }, [supabase]);
 
   useEffect(() => {
-    setIsClient(true);
-
-    const initializeAuth = async () => {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-
-        if (error) {
-          console.error('Error getting session:', error);
-          return;
-        }
-
-        if (session?.user) {
-          setUser(session.user);
-          const data = await fetchUserData(session.user.id);
-          setUserData(data);
-        }
-      } catch (err) {
-        console.error('Auth initialization failed:', err);
-      }
-    };
-
-    initializeAuth();
-
     // Supabase holds its auth lock while this callback runs. Awaiting another
     // Supabase call in here (fetchUserData) deadlocks the client, which left
     // getSession() hanging elsewhere (e.g. /login rendered blank when logged in).
@@ -82,7 +70,7 @@ const Header: React.FC = () => {
         switch (event) {
           case 'SIGNED_IN':
             if (session?.user) {
-              setUser(session.user);
+              setUser(toHeaderUser(session.user.id, session.user.email));
               loadUserData(session.user.id);
             }
             break;
@@ -94,13 +82,13 @@ const Header: React.FC = () => {
 
           case 'TOKEN_REFRESHED':
             if (session?.user) {
-              setUser(session.user);
+              setUser(toHeaderUser(session.user.id, session.user.email));
             }
             break;
 
           case 'USER_UPDATED':
             if (session?.user) {
-              setUser(session.user);
+              setUser(toHeaderUser(session.user.id, session.user.email));
               loadUserData(session.user.id);
             }
             break;
@@ -153,25 +141,6 @@ const Header: React.FC = () => {
     }
     return '?';
   };
-
-  // Server-side / initial render - minimal header
-  if (!isClient) {
-    return (
-      <header className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <Link href="/" className="text-xl font-bold text-blue-700 hover:text-blue-800 transition-colors">
-            <span className="hidden sm:inline">DCG Dental CE</span>
-            <span className="sm:hidden">DCG</span>
-          </Link>
-          <nav className="hidden sm:flex gap-6 items-center">
-            <Link href="/classes" className="text-gray-700 hover:text-blue-700 text-sm font-medium">
-              Browse Classes
-            </Link>
-          </nav>
-        </div>
-      </header>
-    );
-  }
 
   const dashboardHref = userData?.is_admin ? '/admin' : '/dashboard';
   const dashboardLabel = userData?.is_admin ? 'Admin Dashboard' : 'My Dashboard';

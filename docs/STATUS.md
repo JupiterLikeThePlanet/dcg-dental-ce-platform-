@@ -26,6 +26,7 @@ Last checked against the repo: 2026-11-01. Last commit on `main`: 2026-05-01 (at
 - Schema in git: `supabase/migrations/000_baseline.sql` (staging dump, 2026-11-02) + `000_baseline_auth_trigger.sql`; `DATA-MODEL.md` reconciled against it.
 - Fixed: `/login` rendered blank for logged-in users (auth deadlock in `Header.tsx` `onAuthStateChange`). Covered by `tests/e2e/auth.spec.ts`.
 - Playwright specs updated for current UI (attendance type required, optional address/ZIP, filter tabs, template goes through payment gate, no double login).
+- Launch check 2026-11-02 (code): tsc, lint (1 known warning), build, no module-level clients, no auth-helpers, no stray route files, no real keys in git, `.env*` ignored. Prod DB (read-only, counts only): RLS on all 4 tables, 2 admins, no test-named coupons, no live test classes, no `@example.com` users.
 
 ## Open
 - [ ] Playwright (chromium, prod build, 2026-11-02): all specs pass except signup (staging can't send confirmation email, needs custom SMTP). Test data is already seeded. The `chromium-slow` project hasn't been run yet.
@@ -37,6 +38,7 @@ Last checked against the repo: 2026-11-01. Last commit on `main`: 2026-05-01 (at
 - [ ] Decide: finish soft delete (nothing sets `deleted_at`; cleanup hard-deletes) or drop the column
 - [ ] No recovery for "paid but didn't submit" beyond revisiting the same `/submit?paid=` URL
 - [ ] Admin coupon UI can't set `expires_at` or `max_uses`
+- [ ] Prod has 6 active coupons, all unlimited and never-expiring, and the "Users can view active coupons" policy lets any logged-in user list them from the browser = free listings for anyone who looks. Moot once the paywall is hidden; until then, consider deactivating unused codes.
 - [ ] RLS: "Users can update own pending submissions" allows any column, so a user can edit payment fields (`stripe_payment_id`, `payment_amount`, `coupon_code`) on their own pending row from the browser. Can't self-approve. Fix with a column-limited policy or move edits server-side.
 - [ ] Confirm Stripe live mode is set in Vercel Production and the live webhook works
 - [ ] Confirm Supabase Auth Site URL / redirects use dcgdental.com

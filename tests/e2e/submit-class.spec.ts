@@ -135,6 +135,16 @@ test.describe('Step 3: Location', () => {
     await expect(page.locator('text=Invalid ZIP code')).toBeVisible();
   });
 
+  test('Washington, D.C. (DC) can be picked as the state', async ({ page }) => {
+    await page.selectOption('#attendance_type', 'on-site');
+    await page.fill('#city', 'Washington');
+    await page.selectOption('#state', 'DC');
+    await expect(page.locator('#state')).toHaveValue('DC');
+    await page.fill('#zip_code', '20001');
+    await goToNextStep(page, '#instructor_name');
+    await expect(page.locator('#instructor_name')).toBeVisible();
+  });
+
   test('accepts 5-digit and 9-digit ZIP codes', async ({ page }) => {
     await page.selectOption('#attendance_type', 'on-site');
     await page.fill('#address_line1', '123 Main St');

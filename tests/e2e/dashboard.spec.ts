@@ -13,7 +13,12 @@
  */
 
 import { test, expect, Page } from '@playwright/test';
-import { login, TEST_USER } from './helpers/test-utils';
+import { login, TEST_USER, passThroughPaymentGate, goToNextStep, STATUS_BADGES } from './helpers/test-utils';
+
+/** A filter tab button. Its accessible name is the label plus a count, e.g. "Pending3". */
+function filterTab(page: Page, label: string) {
+  return page.getByRole('button', { name: new RegExp(`^${label}\\d*$`) });
+}
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -53,52 +58,44 @@ test.describe('User Dashboard — Submissions List', () => {
   });
 
   test('table has expected columns: Class, Location, Class Date, Status, Submitted', async ({ page }) => {
-    await expect(page.locator('th:has-text("Class")')).toBeVisible();
-    await expect(page.locator('th:has-text("Location")')).toBeVisible();
-    await expect(page.locator('th:has-text("Class Date")')).toBeVisible();
-    await expect(page.locator('th:has-text("Status")')).toBeVisible();
-    await expect(page.locator('th:has-text("Submitted")')).toBeVisible();
+    for (const name of ['Class', 'Location', 'Class Date', 'Status', 'Submitted']) {
+      await expect(page.getByRole('columnheader', { name, exact: true })).toBeVisible();
+    }
   });
 
   test('filter tabs are visible: All, Pending, Approved, Rejected', async ({ page }) => {
-    await expect(page.locator('button:has-text("All")')).toBeVisible();
-    await expect(page.locator('button:has-text("Pending")')).toBeVisible();
-    await expect(page.locator('button:has-text("Approved")')).toBeVisible();
-    await expect(page.locator('button:has-text("Rejected")')).toBeVisible();
+    for (const label of ['All', 'Pending', 'Approved', 'Rejected']) {
+      await expect(filterTab(page, label)).toBeVisible();
+    }
   });
 
   test('Pending filter tab shows only pending submissions', async ({ page }) => {
-    await page.click('button:has-text("Pending")');
+    await filterTab(page, 'Pending').click();
 
     // Every status badge in the table must be "Pending Review" or "Pending Payment"
-    const badges = page.locator('tbody span:has-text("Pending")');
+    const badges = page.locator(STATUS_BADGES);
     const count = await badges.count();
-    if (count === 0) return; // no pending submissions — nothing to assert
-
     for (let i = 0; i < count; i++) {
-      const text = await badges.nth(i).textContent();
-      expect(text).toMatch(/Pending/);
+      expect(await badges.nth(i).textContent()).toMatch(/Pending/);
     }
   });
 
   test('Approved filter tab shows only approved submissions', async ({ page }) => {
-    await page.click('button:has-text("Approved")');
-    const badges = page.locator('tbody span:has-text("Approved")');
-    const allBadges = page.locator('tbody .rounded-full');
-    const total = await allBadges.count();
-    const approved = await badges.count();
-    if (total === 0) return;
-    expect(approved).toBe(total);
+    await filterTab(page, 'Approved').click();
+    const badges = page.locator(STATUS_BADGES);
+    const count = await badges.count();
+    for (let i = 0; i < count; i++) {
+      expect(await badges.nth(i).textContent()).toContain('Approved');
+    }
   });
 
   test('Rejected filter tab shows only rejected submissions', async ({ page }) => {
-    await page.click('button:has-text("Rejected")');
-    const badges = page.locator('tbody span:has-text("Rejected")');
-    const allBadges = page.locator('tbody .rounded-full');
-    const total = await allBadges.count();
-    const rejected = await badges.count();
-    if (total === 0) return;
-    expect(rejected).toBe(total);
+    await filterTab(page, 'Rejected').click();
+    const badges = page.locator(STATUS_BADGES);
+    const count = await badges.count();
+    for (let i = 0; i < count; i++) {
+      expect(await badges.nth(i).textContent()).toContain('Rejected');
+    }
   });
 
   test('clicking a row navigates to the submission detail page', async ({ page }) => {
@@ -230,7 +227,7 @@ test.describe('User Dashboard — Detail: Pending Review status', () => {
 test.describe('User Dashboard — Detail: Rejected status', () => {
   test.beforeEach(async ({ page }) => {
     await gotoDashboard(page);
-    await page.click('button:has-text("Rejected")');
+    await filterTab(page, 'Rejected').click();
     const targetRow = page.locator('tbody tr').filter({ hasText: 'Rejected' }).first();
     const count = await targetRow.count();
     if (count === 0) test.skip(true, 'No rejected submission found — seed test data first');
@@ -283,7 +280,7 @@ test.describe('User Dashboard — Detail: Approved status', () => {
 test.describe('Edit Submission Flow', () => {
   test('edit flow pre-fills form and shows Edit & Resubmit Mode banner', async ({ page }) => {
     await gotoDashboard(page);
-    await page.click('button:has-text("Rejected")');
+    await filterTab(page, 'Rejected').click();
     const targetRow = page.locator('tbody tr').filter({ hasText: 'Rejected' }).first();
     if (await targetRow.count() === 0) {
       test.skip(true, 'No rejected submission found — seed test data first');
@@ -306,12 +303,17 @@ test.describe('Edit Submission Flow', () => {
     await page.click('button:has-text("Use as Template")');
     await page.waitForURL(/\/submit\?template=true/, { timeout: 10000 });
 
+    // A template is a new listing, so it goes through the payment gate first
+    await passThroughPaymentGate(page);
+    // The seeded source row may lack a category; set one so step 1 validates
+    await page.selectOption('#category', 'Implants');
+
     await expect(page.locator('text=Using Template')).toBeVisible();
-    // Start date must be cleared for a template
-    const startDate = await page.inputValue('#start_date');
-    expect(startDate).toBe('');
-    // But other fields like title should be pre-filled
+    // Title is pre-filled
     const title = await page.inputValue('#title');
     expect(title.length).toBeGreaterThan(0);
+    // Start date (step 2) is cleared for a template
+    await goToNextStep(page, '#start_date');
+    expect(await page.inputValue('#start_date')).toBe('');
   });
 });

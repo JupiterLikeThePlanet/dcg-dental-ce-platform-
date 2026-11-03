@@ -41,7 +41,7 @@ npm run test:e2e          # Playwright, against STAGING only
 npm run test:e2e:headed
 ```
 
-Playwright hits `http://localhost:3000` and doesn't start a server. Run `npm run dev` first, with `.env.local` pointed at staging. Test account credentials come from `TEST_USER_EMAIL`, `TEST_USER_PASSWORD`, `TEST_ADMIN_EMAIL`, `TEST_ADMIN_PASSWORD` in `.env.local`.
+Playwright hits `http://localhost:3000` and doesn't start a server. Run `npm run build && npm run start` first, with `.env.local` pointed at staging. Don't test against `npm run dev`: Turbopack fails to load JS chunks in this folder, so client pages render blank and most tests time out. Test account credentials come from `TEST_USER_EMAIL`, `TEST_USER_PASSWORD`, `TEST_ADMIN_EMAIL`, `TEST_ADMIN_PASSWORD` in `.env.local`.
 
 ## Five rules that matter most
 

@@ -24,10 +24,13 @@ Last checked against the repo: 2026-11-01. Last commit on `main`: 2026-05-01 (at
 - Security: four `SECURITY DEFINER` functions (`admin_delete_user`, `approve_submission`, `reject_submission`, `validate_coupon`) were callable by anyone. Locked down by `supabase/migrations/001_lock_down_definer_functions.sql`, applied and verified on staging and prod 2026-11-02.
 - Staging schema matches prod (migration 002 added prod's title/description length checks to staging; structure fingerprints identical 2026-11-02).
 - Schema in git: `supabase/migrations/000_baseline.sql` (staging dump, 2026-11-02) + `000_baseline_auth_trigger.sql`; `DATA-MODEL.md` reconciled against it.
+- Fixed: `/login` rendered blank for logged-in users (auth deadlock in `Header.tsx` `onAuthStateChange`). Covered by `tests/e2e/auth.spec.ts`.
+- Playwright specs updated for current UI (attendance type required, optional address/ZIP, filter tabs, template goes through payment gate, no double login).
 
 ## Open
-- [ ] Run Playwright against staging with the audit fixes (staging DB was unreachable on 2026-11-02)
-- [ ] Add `TEST_USER_*` / `TEST_ADMIN_*` to `.env.local`, and rotate the staging test passwords (old ones are in git history)
+- [ ] Playwright (chromium, prod build, 2026-11-02): 72 passed, 5 failed, 4 skipped. Remaining failures: 4 need a `pending_payment` submission seeded for the test user; 1 is signup (staging can't send confirmation email, needs custom SMTP). The `chromium-slow` project hasn't been run yet.
+- [ ] Rotate the staging test passwords (old ones are in git history)
+- [ ] Staging email: custom SMTP (signup returns 500 "Error sending confirmation email"). Check prod's SMTP too.
 - [ ] Migration: unique index on `submissions.stripe_payment_id` (backs the one-payment rule at the DB level)
 - [ ] Hide the paywall and coupons on the live site (client wants free listings), ideally behind a flag. Don't delete Stripe/coupon code or the `coupon_codes` policies; they may come back.
 - [ ] Decide: should editing an approved listing go back to review? Today it updates the live class immediately.

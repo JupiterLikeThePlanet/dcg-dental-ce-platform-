@@ -1,17 +1,13 @@
 import { test, expect } from '@playwright/test';
-import { login, fillAllSteps, goToNextStep } from './helpers/test-utils';
+import { login, fillAllSteps, goToNextStep, passThroughPaymentGate } from './helpers/test-utils';
 
 // ─── Shared setup ────────────────────────────────────────────────────────────
 // All form tests apply a valid coupon at the payment gate so they land on step 1.
+// The Payment Gate tests do their own login, so this hook skips them. (An empty
+// beforeEach in a describe does NOT override this one; Playwright runs both.)
 
-async function passThroughPaymentGate(page: Parameters<typeof login>[0]) {
-  await page.waitForSelector('input[placeholder="Enter coupon code"]', { timeout: 10000 });
-  await page.fill('input[placeholder="Enter coupon code"]', 'TESTFREE');
-  await page.click('button:has-text("Apply")');
-  await page.waitForSelector('#title', { timeout: 10000 });
-}
-
-test.beforeEach(async ({ page }) => {
+test.beforeEach(async ({ page }, testInfo) => {
+  if (testInfo.titlePath.includes('Payment Gate')) return;
   await login(page);
   await page.goto('/submit');
   await passThroughPaymentGate(page);
@@ -108,12 +104,19 @@ test.describe('Step 3: Location', () => {
 
   test('shows validation errors for empty required fields', async ({ page }) => {
     await page.click('button:has-text("Next →")');
-    await expect(page.locator('text=Address is required')).toBeVisible();
+    await expect(page.locator('text=Attendance type is required')).toBeVisible();
     await expect(page.locator('text=City is required')).toBeVisible();
-    await expect(page.locator('text=ZIP code is required')).toBeVisible();
+  });
+
+  test('street address and ZIP are optional — can proceed with just city', async ({ page }) => {
+    await page.selectOption('#attendance_type', 'remote');
+    await page.fill('#city', 'New Orleans');
+    await goToNextStep(page, '#instructor_name');
+    await expect(page.locator('#instructor_name')).toBeVisible();
   });
 
   test('address line 2 is optional — can proceed without it', async ({ page }) => {
+    await page.selectOption('#attendance_type', 'on-site');
     await page.fill('#address_line1', '123 Main St');
     // Skip address_line2
     await page.fill('#city', 'New Orleans');
@@ -124,6 +127,7 @@ test.describe('Step 3: Location', () => {
   });
 
   test('shows ZIP code error for invalid format', async ({ page }) => {
+    await page.selectOption('#attendance_type', 'on-site');
     await page.fill('#address_line1', '123 Main St');
     await page.fill('#city', 'New Orleans');
     await page.fill('#zip_code', 'invalid');
@@ -132,6 +136,7 @@ test.describe('Step 3: Location', () => {
   });
 
   test('accepts 5-digit and 9-digit ZIP codes', async ({ page }) => {
+    await page.selectOption('#attendance_type', 'on-site');
     await page.fill('#address_line1', '123 Main St');
     await page.fill('#city', 'New Orleans');
     await page.fill('#zip_code', '70112-1234');
@@ -154,6 +159,7 @@ test.describe('Step 4: Details', () => {
     await page.fill('#start_date', tomorrow.toISOString().split('T')[0]);
     await goToNextStep(page, '#address_line1');
 
+    await page.selectOption('#attendance_type', 'on-site');
     await page.fill('#address_line1', '123 Main St');
     await page.fill('#city', 'New Orleans');
     await page.fill('#zip_code', '70112');
@@ -205,10 +211,6 @@ test.describe('Step 4: Details', () => {
 
 test.describe('Payment Gate', () => {
   // These tests need a fresh /submit page without the gate already passed
-  test.beforeEach(async ({ page }) => {
-    // Override the shared beforeEach — navigate fresh without going through the gate
-  });
-
   test('payment gate is shown before the form', async ({ page }) => {
     await login(page);
     await page.goto('/submit');

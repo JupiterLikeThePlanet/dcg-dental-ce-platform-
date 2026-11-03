@@ -188,7 +188,7 @@ the `TEST_*` vars are available to the specs without extra setup.
 
 ### How to verify which database you are connected to
 
-1. Start your app: `npm run dev`
+1. Start your app: `npm run build && npm run start` (not `npm run dev`; Turbopack serves blank pages here, see KNOWN-TRAPS)
 2. Go to `http://localhost:3000`
 3. Try to sign up with a new test email
 4. Check **both** your staging and production Supabase dashboards → Authentication → Users
@@ -242,7 +242,7 @@ Now the test user has one submission of each status, and the tests can find them
 
 ```
 [ ] Your .env.local points to STAGING Supabase (not production)
-[ ] The staging app is running: npm run start  (or npm run dev)
+[ ] The staging app is running: npm run start  (after npm run build; not npm run dev)
 [ ] The app is accessible at http://localhost:3000
 [ ] Test users exist in staging Supabase
 [ ] Test submission data exists for each status type
@@ -498,7 +498,7 @@ Here is the process from "I want to make a change" to "it's live for users."
    git checkout -b my-feature-name
 
 2. DEVELOP the feature on your local machine
-   npm run dev  (connects to staging Supabase via .env.local)
+   npm run build && npm run start  (connects to staging Supabase via .env.local)
 
 3. WRITE or update tests for the feature
 

@@ -10,7 +10,7 @@
  */
 
 import { test, expect, Page } from '@playwright/test';
-import { login, TEST_ADMIN, TEST_USER } from './helpers/test-utils';
+import { login, TEST_ADMIN, TEST_USER, STATUS_BADGES } from './helpers/test-utils';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -105,7 +105,7 @@ test.describe('Admin Dashboard — Submissions Queue', () => {
     await page.click('nav a:has-text("Approved")');
     await page.waitForURL(/status=approved/, { timeout: 5000 });
     // All visible badges should say "Approved"
-    const badges = page.locator('tbody .rounded-full');
+    const badges = page.locator(STATUS_BADGES);
     const count = await badges.count();
     for (let i = 0; i < count; i++) {
       const text = await badges.nth(i).textContent();

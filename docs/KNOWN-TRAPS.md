@@ -12,6 +12,8 @@ Mistakes Claude (and humans) have already made on this project, plus the ones it
 | Spreading the request body into a DB write (`...submissionData`) | Run it through `pickSubmissionFields()` first. Raw spreads let a user set `status`, `deleted_at`, etc. |
 | Checking coupons with the user's Supabase client | Use `lib/coupons.ts`. It checks expiry and counts uses safely. |
 | Creating a `SECURITY DEFINER` SQL function and moving on | Everyone, logged out included, can call it via `/rest/v1/rpc/`. Check `is_admin()` inside or revoke execute. See migration 001. |
+| Running Playwright against `npm run dev` | Turbopack (`--turbo`) fails to load JS chunks in this folder (path has spaces/parens), so pages render blank. Test against `npm run build && npm run start`. |
+| Awaiting a Supabase call inside `onAuthStateChange` | Deadlocks the auth client; `getSession()` hangs elsewhere (blank `/login`). Keep the callback sync and defer with `setTimeout`. Fixed in `Header.tsx` 2026-11-02. |
 | Writing `pages/` or `getServerSideProps` | App Router only |
 | Tailwind v4 syntax (`@import "tailwindcss"`, `@theme`) | Repo is on Tailwind v3 |
 | Naming an API file `approve-route.ts` | Next only routes `route.ts`. A stray `app/admin/submissions/[id]/approve/approve-route.ts` used to exist and did nothing (deleted 2026-11-02). |

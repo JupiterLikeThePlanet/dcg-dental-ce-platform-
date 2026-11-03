@@ -3,6 +3,14 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 
+// Must match the DB check constraint (supabase/migrations/000_baseline.sql, classes_attendance_type_check).
+const ATTENDANCE_OPTIONS = [
+  { value: 'on-site', label: 'On-Site' },
+  { value: 'hybrid', label: 'Hybrid' },
+  { value: 'remote', label: 'Remote' },
+  { value: 'pre-recorded', label: 'Pre-Recorded' },
+];
+
 interface FilterBarProps {
   currentSearch: string;
   currentState: string;
@@ -198,10 +206,9 @@ export default function FilterBar({
             className="w-full px-4 py-2 border border-gray-300 rounded-sm focus:outline-none focus:border-blue-500 text-sm bg-white"
           >
             <option value="">All Types</option>
-            <option value="on-site">On-Site</option>
-            <option value="hybrid">Hybrid</option>
-            <option value="remote">Remote</option>
-            <option value="pre-recorded">Pre-Recorded</option>
+            {ATTENDANCE_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
           </select>
         </div>
       </div>
@@ -234,7 +241,7 @@ export default function FilterBar({
 
           {currentAttendanceType && (
             <span className="inline-flex items-center gap-1 px-2 py-1 bg-orange-100 text-orange-800 text-sm rounded-sm">
-              {{'on-site': 'On-Site', 'hybrid': 'Hybrid', 'remote': 'Remote', 'pre-recorded': 'Pre-Recorded'}[currentAttendanceType] ?? currentAttendanceType}
+              {ATTENDANCE_OPTIONS.find((opt) => opt.value === currentAttendanceType)?.label ?? currentAttendanceType}
               <button onClick={() => updateFilters({ attendance_type: '' })} className="ml-1 hover:text-orange-600">✕</button>
             </span>
           )}
@@ -310,9 +317,9 @@ export default function FilterBar({
               className="w-full px-4 py-3 border border-gray-300 rounded-lg text-base bg-white focus:outline-none focus:border-blue-500"
             >
               <option value="">All Types</option>
-              <option value="In-Person">In-Person</option>
-              <option value="Virtual">Virtual</option>
-              <option value="Hybrid">Hybrid</option>
+              {ATTENDANCE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
             </select>
           </div>
         </div>

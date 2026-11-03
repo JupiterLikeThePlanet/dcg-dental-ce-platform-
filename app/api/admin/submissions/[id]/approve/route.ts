@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { getSupabaseAdmin } from '@/lib/supabase-admin';
+import { revalidateTag } from 'next/cache';
+import { CLASS_FILTER_OPTIONS_TAG } from '@/lib/class-filter-options';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -127,6 +129,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
         { status: 500 }
       );
     }
+
+    // New listing may add a state/category to the /classes dropdowns
+    revalidateTag(CLASS_FILTER_OPTIONS_TAG);
 
     return NextResponse.json({
       success: true,

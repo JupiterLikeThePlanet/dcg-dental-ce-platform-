@@ -3,6 +3,8 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { getSupabaseAdmin } from '@/lib/supabase-admin';
 import { getStripeServer } from '@/lib/stripe-server';
+import { revalidateTag } from 'next/cache';
+import { CLASS_FILTER_OPTIONS_TAG } from '@/lib/class-filter-options';
 import { getUsableCoupon, claimCouponUse } from '@/lib/coupons';
 import { pickSubmissionFields } from '@/lib/submission-fields';
 import { isPaywallEnabled } from '@/lib/paywall';
@@ -112,6 +114,9 @@ export async function POST(request: NextRequest) {
         // Note: If there's no matching class (edge case), we don't fail
         if (updateClassError) {
           console.error('Update class error (non-fatal):', updateClassError);
+        } else {
+          // Edited listing may have changed its state/category
+          revalidateTag(CLASS_FILTER_OPTIONS_TAG);
         }
 
         return NextResponse.json({ 

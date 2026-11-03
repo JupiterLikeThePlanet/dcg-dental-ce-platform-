@@ -1,7 +1,15 @@
 'use client';
 
-import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import { useClassesNav } from './ClassesNavigation';
+
+// Must match the DB check constraint (supabase/migrations/000_baseline.sql, classes_attendance_type_check).
+const ATTENDANCE_OPTIONS = [
+  { value: 'on-site', label: 'On-Site' },
+  { value: 'hybrid', label: 'Hybrid' },
+  { value: 'remote', label: 'Remote' },
+  { value: 'pre-recorded', label: 'Pre-Recorded' },
+];
 
 interface FilterBarProps {
   currentSearch: string;
@@ -13,15 +21,21 @@ interface FilterBarProps {
 }
 
 export default function FilterBar({
-  currentSearch,
-  currentState,
-  currentCategory,
-  currentAttendanceType,
+  currentSearch: confirmedSearch,
+  currentState: confirmedState,
+  currentCategory: confirmedCategory,
+  currentAttendanceType: confirmedAttendanceType,
   availableStates,
   availableCategories
 }: FilterBarProps) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
+  const { pendingQuery, updateQuery } = useClassesNav();
+
+  // While a change is loading, show what the user picked, not the last server-confirmed value.
+  const pick = (key: string, confirmed: string) => (pendingQuery ? pendingQuery.get(key) ?? '' : confirmed);
+  const currentSearch = pick('search', confirmedSearch);
+  const currentState = pick('state', confirmedState);
+  const currentCategory = pick('category', confirmedCategory);
+  const currentAttendanceType = pick('attendance_type', confirmedAttendanceType);
 
   const [searchInput, setSearchInput] = useState(currentSearch);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -55,30 +69,14 @@ export default function FilterBar({
   }, [sheetOpen]);
 
   const updateFilters = (newParams: { search?: string; state?: string; category?: string; attendance_type?: string }) => {
-    const params = new URLSearchParams(searchParams.toString());
-
-    if (newParams.search !== undefined) {
-      if (newParams.search) params.set('search', newParams.search);
-      else params.delete('search');
-    }
-
-    if (newParams.state !== undefined) {
-      if (newParams.state) params.set('state', newParams.state);
-      else params.delete('state');
-    }
-
-    if (newParams.category !== undefined) {
-      if (newParams.category) params.set('category', newParams.category);
-      else params.delete('category');
-    }
-
-    if (newParams.attendance_type !== undefined) {
-      if (newParams.attendance_type) params.set('attendance_type', newParams.attendance_type);
-      else params.delete('attendance_type');
-    }
-
-    params.delete('page');
-    router.push(`/classes?${params.toString()}`);
+    updateQuery((params) => {
+      for (const [key, value] of Object.entries(newParams)) {
+        if (value === undefined) continue;
+        if (value) params.set(key, value);
+        else params.delete(key);
+      }
+      params.delete('page');
+    });
   };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -106,14 +104,8 @@ export default function FilterBar({
   };
 
   const handleClearAll = () => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.delete('search');
-    params.delete('state');
-    params.delete('category');
-    params.delete('attendance_type');
-    params.delete('page');
     setSearchInput('');
-    router.push(`/classes?${params.toString()}`);
+    updateFilters({ search: '', state: '', category: '', attendance_type: '' });
   };
 
   const hasActiveFilters = currentSearch || currentState || currentCategory || currentAttendanceType;
@@ -165,7 +157,7 @@ export default function FilterBar({
           <select
             value={currentCategory}
             onChange={(e) => handleCategoryChange(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-sm focus:outline-none focus:border-blue-500 text-sm bg-white"
+            className="w-full pl-4 pr-10 py-2 border border-gray-300 rounded-sm focus:outline-none focus:border-blue-500 text-sm bg-white"
           >
             <option value="">All Categories</option>
             {availableCategories.map((category) => (
@@ -180,7 +172,7 @@ export default function FilterBar({
           <select
             value={currentState}
             onChange={(e) => handleStateChange(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-sm focus:outline-none focus:border-blue-500 text-sm bg-white"
+            className="w-full pl-4 pr-10 py-2 border border-gray-300 rounded-sm focus:outline-none focus:border-blue-500 text-sm bg-white"
           >
             <option value="">All States</option>
             {availableStates.map((state) => (
@@ -195,13 +187,12 @@ export default function FilterBar({
           <select
             value={currentAttendanceType}
             onChange={(e) => updateFilters({ attendance_type: e.target.value })}
-            className="w-full px-4 py-2 border border-gray-300 rounded-sm focus:outline-none focus:border-blue-500 text-sm bg-white"
+            className="w-full pl-4 pr-10 py-2 border border-gray-300 rounded-sm focus:outline-none focus:border-blue-500 text-sm bg-white"
           >
             <option value="">All Types</option>
-            <option value="on-site">On-Site</option>
-            <option value="hybrid">Hybrid</option>
-            <option value="remote">Remote</option>
-            <option value="pre-recorded">Pre-Recorded</option>
+            {ATTENDANCE_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
           </select>
         </div>
       </div>
@@ -234,7 +225,7 @@ export default function FilterBar({
 
           {currentAttendanceType && (
             <span className="inline-flex items-center gap-1 px-2 py-1 bg-orange-100 text-orange-800 text-sm rounded-sm">
-              {{'on-site': 'On-Site', 'hybrid': 'Hybrid', 'remote': 'Remote', 'pre-recorded': 'Pre-Recorded'}[currentAttendanceType] ?? currentAttendanceType}
+              {ATTENDANCE_OPTIONS.find((opt) => opt.value === currentAttendanceType)?.label ?? currentAttendanceType}
               <button onClick={() => updateFilters({ attendance_type: '' })} className="ml-1 hover:text-orange-600">✕</button>
             </span>
           )}
@@ -279,7 +270,7 @@ export default function FilterBar({
             <select
               value={draftCategory}
               onChange={(e) => setDraftCategory(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-base bg-white focus:outline-none focus:border-blue-500"
+              className="w-full pl-4 pr-10 py-3 border border-gray-300 rounded-lg text-base bg-white focus:outline-none focus:border-blue-500"
             >
               <option value="">All Categories</option>
               {availableCategories.map((category) => (
@@ -293,7 +284,7 @@ export default function FilterBar({
             <select
               value={draftState}
               onChange={(e) => setDraftState(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-base bg-white focus:outline-none focus:border-blue-500"
+              className="w-full pl-4 pr-10 py-3 border border-gray-300 rounded-lg text-base bg-white focus:outline-none focus:border-blue-500"
             >
               <option value="">All States</option>
               {availableStates.map((state) => (
@@ -307,12 +298,12 @@ export default function FilterBar({
             <select
               value={draftAttendanceType}
               onChange={(e) => setDraftAttendanceType(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-base bg-white focus:outline-none focus:border-blue-500"
+              className="w-full pl-4 pr-10 py-3 border border-gray-300 rounded-lg text-base bg-white focus:outline-none focus:border-blue-500"
             >
               <option value="">All Types</option>
-              <option value="In-Person">In-Person</option>
-              <option value="Virtual">Virtual</option>
-              <option value="Hybrid">Hybrid</option>
+              {ATTENDANCE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
             </select>
           </div>
         </div>

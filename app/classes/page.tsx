@@ -1,15 +1,15 @@
+import { Suspense } from 'react';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
-import ClassGrid from '@/components/classes/ClassGrid';
 import SortControls from '@/components/classes/SortControls';
-import Pagination from '@/components/classes/Pagination';
 import FilterBar from '@/components/classes/FilterBar';
+import ClassResults from '@/components/classes/ClassResults';
+import ClassGridSkeleton from '@/components/classes/ClassGridSkeleton';
+import { ClassesNavProvider, PendingResults } from '@/components/classes/ClassesNavigation';
+import { getClassFilterOptions } from '@/lib/class-filter-options';
 
 // Force dynamic rendering (no caching) so we always get fresh data
 export const dynamic = 'force-dynamic';
-
-// Pagination settings
-const ITEMS_PER_PAGE = 20;
 
 // Define valid sort options
 type SortOption = 'date' | 'instructor' | 'price' | 'location';
@@ -30,7 +30,7 @@ interface PageProps {
 export default async function ClassesPage({ searchParams }: PageProps) {
   // In Next.js 14+, searchParams is a Promise
   const params = await searchParams;
-  
+
   // Parse all URL parameters with defaults
   const sortParam = (params.sort as SortOption) || 'date';
   const dirParam = (params.dir as SortDirection) || 'asc';
@@ -39,20 +39,17 @@ export default async function ClassesPage({ searchParams }: PageProps) {
   const stateFilter = (params.state as string) || '';
   const categoryFilter = (params.category as string) || '';
   const attendanceTypeFilter = (params.attendance_type as string) || '';
-  
+
   // Validate sort option
-  const validSort: SortOption = ['date', 'instructor', 'price', 'location'].includes(sortParam) 
-    ? sortParam 
+  const validSort: SortOption = ['date', 'instructor', 'price', 'location'].includes(sortParam)
+    ? sortParam
     : 'date';
-  const validDirection: SortDirection = ['asc', 'desc'].includes(dirParam) 
-    ? dirParam 
+  const validDirection: SortDirection = ['asc', 'desc'].includes(dirParam)
+    ? dirParam
     : 'asc';
-  
+
   // Validate page number
   const currentPage = Math.max(1, parseInt(pageParam, 10) || 1);
-  
-  // Get the database column name
-  const sortColumn = sortColumnMap[validSort];
 
   // Today's date string (YYYY-MM-DD) — classes with end_date before this are hidden
   const today = new Date().toISOString().split('T')[0];
@@ -71,170 +68,39 @@ export default async function ClassesPage({ searchParams }: PageProps) {
     }
   );
 
-  // Fetch all unique states for the filter dropdown
-  const { data: statesData } = await supabase
-    .from('classes')
-    .select('state')
-    .eq('status', 'approved')
-    .is('deleted_at', null)
-    .or(`end_date.is.null,end_date.gte.${today}`)
-    .not('state', 'is', null);
-
-  // Extract unique states and sort alphabetically
-  const availableStates = [...new Set(statesData?.map(c => c.state).filter(Boolean) || [])].sort() as string[];
-
-  // Fetch all unique categories for the filter dropdown
-  const { data: categoriesData } = await supabase
-    .from('classes')
-    .select('category')
-    .eq('status', 'approved')
-    .is('deleted_at', null)
-    .or(`end_date.is.null,end_date.gte.${today}`)
-    .not('category', 'is', null);
-  
-  // Extract unique categories and sort alphabetically
-  const availableCategories = [...new Set(categoriesData?.map(c => c.category).filter(Boolean) || [])].sort() as string[];
-
-  // Build the base query for counting
-  let countQuery = supabase
-    .from('classes')
-    .select('*', { count: 'exact', head: true })
-    .eq('status', 'approved')
-    .is('deleted_at', null)
-    .or(`end_date.is.null,end_date.gte.${today}`);
-
-  // Apply search filter to count query
-  if (searchQuery) {
-    // countQuery = countQuery.or(`title.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%,instructor_name.ilike.%${searchQuery}%`);
-    // countQuery = countQuery.or(`title.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%,instructor_name.ilike.%${searchQuery}%,title.fts.${searchQuery},description.fts.${searchQuery}`);
-    
-      // Search with partial matching - trims to word stem for better results
-    const searchTerm = searchQuery.toLowerCase().trim();
-    // Remove common suffixes for stem matching (e.g., "dental" matches "dentistry")
-    const stemmedSearch = searchTerm
-      .replace(/ing$/, '')
-      .replace(/istry$/, '')
-      .replace(/ist$/, '')
-      .replace(/tion$/, '')
-      .replace(/al$/, '');
-    
-    // Use the shorter of original or stemmed (minimum 3 chars)
-    const effectiveSearch = stemmedSearch.length >= 3 ? stemmedSearch : searchTerm;
-    
-    countQuery = countQuery.or(`title.ilike.%${effectiveSearch}%,description.ilike.%${effectiveSearch}%,instructor_name.ilike.%${searchQuery}%`);
+  // Dropdown options are cached (lib/class-filter-options.ts), so filter clicks don't wait on them.
+  // On failure, fall back to empty dropdowns rather than breaking the page (same as before).
+  let availableStates: string[] = [];
+  let availableCategories: string[] = [];
+  try {
+    const options = await getClassFilterOptions(today);
+    availableStates = options.states;
+    availableCategories = options.categories;
+  } catch (err) {
+    console.error(err);
   }
 
-  // Apply state filter to count query
-  if (stateFilter) {
-    countQuery = countQuery.eq('state', stateFilter);
-  }
+  const filters = {
+    search: searchQuery,
+    state: stateFilter,
+    category: categoryFilter,
+    attendanceType: attendanceTypeFilter,
+  };
 
-  // Apply category filter to count query
-  if (categoryFilter) {
-    countQuery = countQuery.eq('category', categoryFilter);
-  }
-
-  // Apply attendance type filter to count query
-  if (attendanceTypeFilter) {
-    countQuery = countQuery.eq('attendance_type', attendanceTypeFilter);
-  }
-
-  const { count: totalCount, error: countError } = await countQuery;
-
-  if (countError) {
-    console.error('Error fetching count:', countError);
-  }
-
-  const totalItems = totalCount || 0;
-  const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
-  
-  // Ensure current page is within bounds
-  const validPage = Math.min(currentPage, Math.max(1, totalPages));
-  
-  // Calculate offset for pagination
-  const offset = (validPage - 1) * ITEMS_PER_PAGE;
-
-  // Build the main query
-  let mainQuery = supabase
-    .from('classes')
-    .select('*')
-    .eq('status', 'approved')
-    .is('deleted_at', null)
-    .or(`end_date.is.null,end_date.gte.${today}`);
-
-  // Apply search filter to main query
-  if (searchQuery) {
-    // mainQuery = mainQuery.or(`title.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%,instructor_name.ilike.%${searchQuery}%`);
-  
-    // Search with partial matching - trims to word stem for better results
-    const searchTerm = searchQuery.toLowerCase().trim();
-    // Remove common suffixes for stem matching (e.g., "dental" matches "dentistry")
-    const stemmedSearch = searchTerm
-      .replace(/ing$/, '')
-      .replace(/istry$/, '')
-      .replace(/ist$/, '')
-      .replace(/tion$/, '')
-      .replace(/al$/, '');
-    
-    // Use the shorter of original or stemmed (minimum 3 chars)
-    const effectiveSearch = stemmedSearch.length >= 3 ? stemmedSearch : searchTerm;
-    
-    mainQuery = mainQuery.or(`title.ilike.%${effectiveSearch}%,description.ilike.%${effectiveSearch}%,instructor_name.ilike.%${searchQuery}%`);
-  }
-
-  // Apply state filter to main query
-  if (stateFilter) {
-    mainQuery = mainQuery.eq('state', stateFilter);
-  }
-
-  // Apply category filter to main query
-  if (categoryFilter) {
-    mainQuery = mainQuery.eq('category', categoryFilter);
-  }
-
-  // Apply attendance type filter to main query
-  if (attendanceTypeFilter) {
-    mainQuery = mainQuery.eq('attendance_type', attendanceTypeFilter);
-  }
-
-  // Apply sorting and pagination
-  const { data: classes, error } = await mainQuery
-    .order(sortColumn, { ascending: validDirection === 'asc' })
-    .range(offset, offset + ITEMS_PER_PAGE - 1);
-
-  // Handle error state
-  if (error) {
-    console.error('Error fetching classes:', error);
-    return (
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-4">
-          Browse Dental CE Classes
-        </h1>
-        <div className="bg-red-50 border border-red-200 rounded-sm p-4">
-          <p className="text-red-700">
-            Error loading classes. Please try again later.
-          </p>
-          <p className="text-red-500 text-sm mt-1">
-            {error.message}
-          </p>
-        </div>
-      </div>
-    );
-  }
+  // A new key on every filter/sort/page change makes React treat the boundary as new,
+  // so the skeleton shows immediately instead of the old cards freezing on screen.
+  const resultsKey = JSON.stringify({ ...filters, validSort, validDirection, currentPage });
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       {/* Page Header */}
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+        <h1 className="text-3xl font-bold text-gray-900">
           Browse Dental CE Classes
         </h1>
-        <p className="text-gray-600">
-          {totalItems} {totalItems === 1 ? 'class' : 'classes'} available
-          {(searchQuery || stateFilter || categoryFilter || attendanceTypeFilter) && ' (filtered)'}
-        </p>
       </div>
 
+      <ClassesNavProvider>
       {/* Search and Filter Bar */}
       <FilterBar
         currentSearch={searchQuery}
@@ -248,16 +114,20 @@ export default async function ClassesPage({ searchParams }: PageProps) {
       {/* Sort Controls */}
       <SortControls currentSort={validSort} currentDirection={validDirection} />
 
-      {/* Class Grid */}
-      <ClassGrid classes={classes || []} />
-
-      {/* Pagination */}
-      <Pagination 
-        currentPage={validPage}
-        totalPages={totalPages}
-        totalItems={totalItems}
-        itemsPerPage={ITEMS_PER_PAGE}
-      />
+      {/* Skeleton from the moment of the click (PendingResults) until results stream in (Suspense) */}
+      <PendingResults>
+        <Suspense key={resultsKey} fallback={<ClassGridSkeleton />}>
+          <ClassResults
+            supabase={supabase}
+            filters={filters}
+            sortColumn={sortColumnMap[validSort]}
+            ascending={validDirection === 'asc'}
+            currentPage={currentPage}
+            today={today}
+          />
+        </Suspense>
+      </PendingResults>
+      </ClassesNavProvider>
     </div>
   );
 }

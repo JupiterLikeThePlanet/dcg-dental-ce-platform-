@@ -181,7 +181,7 @@ export default function UserSubmissionsTable({ submissions, activeFilter, onFilt
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-            className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="text-sm border border-gray-300 rounded-lg pl-3 pr-9 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="all">All ({counts.all})</option>
             <option value="pending">Pending ({counts.pending})</option>
@@ -200,7 +200,7 @@ export default function UserSubmissionsTable({ submissions, activeFilter, onFilt
               setSortField(field);
               setSortDirection(dir);
             }}
-            className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="text-sm border border-gray-300 rounded-lg pl-3 pr-9 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="created_at-desc">Newest First</option>
             <option value="created_at-asc">Oldest First</option>

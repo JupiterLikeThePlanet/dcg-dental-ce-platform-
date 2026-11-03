@@ -72,7 +72,7 @@ export default function SortControls({ currentSort, currentDirection }: SortCont
         <select
           value={currentSort}
           onChange={handleMobileSortChange}
-          className="flex-1 px-3 py-1.5 border border-gray-300 rounded-sm text-sm bg-white focus:outline-none focus:border-blue-500"
+          className="flex-1 pl-3 pr-9 py-1.5 border border-gray-300 rounded-sm text-sm bg-white focus:outline-none focus:border-blue-500"
         >
           {(Object.keys(sortLabels) as SortOption[]).map((sort) => (
             <option key={sort} value={sort}>

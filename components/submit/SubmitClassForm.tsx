@@ -454,7 +454,7 @@ export default function SubmitClassForm({ userId, userEmail, stripeSessionId, gr
           name="category"
           value={formData.category}
           onChange={handleChange}
-          className={`w-full px-4 py-3 sm:py-2 text-base border rounded-sm focus:outline-none focus:border-blue-500 ${
+          className={`w-full pl-4 pr-10 py-3 sm:py-2 text-base border rounded-sm focus:outline-none focus:border-blue-500 ${
             errors.category ? 'border-red-500' : 'border-gray-300'
           }`}
         >
@@ -561,7 +561,7 @@ export default function SubmitClassForm({ userId, userEmail, stripeSessionId, gr
           name="attendance_type"
           value={formData.attendance_type}
           onChange={handleChange}
-          className={`w-full px-4 py-3 sm:py-2 text-base border rounded-sm focus:outline-none focus:border-blue-500 ${
+          className={`w-full pl-4 pr-10 py-3 sm:py-2 text-base border rounded-sm focus:outline-none focus:border-blue-500 ${
             errors.attendance_type ? 'border-red-500' : 'border-gray-300'
           }`}
         >
@@ -638,7 +638,7 @@ export default function SubmitClassForm({ userId, userEmail, stripeSessionId, gr
             name="state"
             value={formData.state}
             onChange={handleChange}
-            className={`w-full px-4 py-3 sm:py-2 text-base border rounded-sm focus:outline-none focus:border-blue-500 ${
+            className={`w-full pl-4 pr-10 py-3 sm:py-2 text-base border rounded-sm focus:outline-none focus:border-blue-500 ${
               errors.state ? 'border-red-500' : 'border-gray-300'
             }`}
           >

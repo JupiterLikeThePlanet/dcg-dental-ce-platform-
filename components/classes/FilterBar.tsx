@@ -173,7 +173,7 @@ export default function FilterBar({
           <select
             value={currentCategory}
             onChange={(e) => handleCategoryChange(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-sm focus:outline-none focus:border-blue-500 text-sm bg-white"
+            className="w-full pl-4 pr-10 py-2 border border-gray-300 rounded-sm focus:outline-none focus:border-blue-500 text-sm bg-white"
           >
             <option value="">All Categories</option>
             {availableCategories.map((category) => (
@@ -188,7 +188,7 @@ export default function FilterBar({
           <select
             value={currentState}
             onChange={(e) => handleStateChange(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-sm focus:outline-none focus:border-blue-500 text-sm bg-white"
+            className="w-full pl-4 pr-10 py-2 border border-gray-300 rounded-sm focus:outline-none focus:border-blue-500 text-sm bg-white"
           >
             <option value="">All States</option>
             {availableStates.map((state) => (
@@ -203,7 +203,7 @@ export default function FilterBar({
           <select
             value={currentAttendanceType}
             onChange={(e) => updateFilters({ attendance_type: e.target.value })}
-            className="w-full px-4 py-2 border border-gray-300 rounded-sm focus:outline-none focus:border-blue-500 text-sm bg-white"
+            className="w-full pl-4 pr-10 py-2 border border-gray-300 rounded-sm focus:outline-none focus:border-blue-500 text-sm bg-white"
           >
             <option value="">All Types</option>
             {ATTENDANCE_OPTIONS.map((opt) => (
@@ -286,7 +286,7 @@ export default function FilterBar({
             <select
               value={draftCategory}
               onChange={(e) => setDraftCategory(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-base bg-white focus:outline-none focus:border-blue-500"
+              className="w-full pl-4 pr-10 py-3 border border-gray-300 rounded-lg text-base bg-white focus:outline-none focus:border-blue-500"
             >
               <option value="">All Categories</option>
               {availableCategories.map((category) => (
@@ -300,7 +300,7 @@ export default function FilterBar({
             <select
               value={draftState}
               onChange={(e) => setDraftState(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-base bg-white focus:outline-none focus:border-blue-500"
+              className="w-full pl-4 pr-10 py-3 border border-gray-300 rounded-lg text-base bg-white focus:outline-none focus:border-blue-500"
             >
               <option value="">All States</option>
               {availableStates.map((state) => (
@@ -314,7 +314,7 @@ export default function FilterBar({
             <select
               value={draftAttendanceType}
               onChange={(e) => setDraftAttendanceType(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-base bg-white focus:outline-none focus:border-blue-500"
+              className="w-full pl-4 pr-10 py-3 border border-gray-300 rounded-lg text-base bg-white focus:outline-none focus:border-blue-500"
             >
               <option value="">All Types</option>
               {ATTENDANCE_OPTIONS.map((opt) => (

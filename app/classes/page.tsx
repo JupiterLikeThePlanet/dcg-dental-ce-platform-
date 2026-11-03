@@ -6,6 +6,7 @@ import FilterBar from '@/components/classes/FilterBar';
 import ClassResults from '@/components/classes/ClassResults';
 import ClassGridSkeleton from '@/components/classes/ClassGridSkeleton';
 import { ClassesNavProvider, PendingResults } from '@/components/classes/ClassesNavigation';
+import { getClassFilterOptions } from '@/lib/class-filter-options';
 
 // Force dynamic rendering (no caching) so we always get fresh data
 export const dynamic = 'force-dynamic';
@@ -67,27 +68,17 @@ export default async function ClassesPage({ searchParams }: PageProps) {
     }
   );
 
-  // Dropdown options don't depend on the active filters, so fetch both at once.
-  const [{ data: statesData }, { data: categoriesData }] = await Promise.all([
-    supabase
-      .from('classes')
-      .select('state')
-      .eq('status', 'approved')
-      .is('deleted_at', null)
-      .or(`end_date.is.null,end_date.gte.${today}`)
-      .not('state', 'is', null),
-    supabase
-      .from('classes')
-      .select('category')
-      .eq('status', 'approved')
-      .is('deleted_at', null)
-      .or(`end_date.is.null,end_date.gte.${today}`)
-      .not('category', 'is', null),
-  ]);
-
-  // Extract unique values and sort alphabetically
-  const availableStates = [...new Set(statesData?.map(c => c.state).filter(Boolean) || [])].sort() as string[];
-  const availableCategories = [...new Set(categoriesData?.map(c => c.category).filter(Boolean) || [])].sort() as string[];
+  // Dropdown options are cached (lib/class-filter-options.ts), so filter clicks don't wait on them.
+  // On failure, fall back to empty dropdowns rather than breaking the page (same as before).
+  let availableStates: string[] = [];
+  let availableCategories: string[] = [];
+  try {
+    const options = await getClassFilterOptions(today);
+    availableStates = options.states;
+    availableCategories = options.categories;
+  } catch (err) {
+    console.error(err);
+  }
 
   const filters = {
     search: searchQuery,

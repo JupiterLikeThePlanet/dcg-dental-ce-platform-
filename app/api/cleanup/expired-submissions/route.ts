@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase-admin';
+import { revalidateTag } from 'next/cache';
+import { CLASS_FILTER_OPTIONS_TAG } from '@/lib/class-filter-options';
 
 // Secured with CRON_SECRET env var — set this in your Vercel project settings.
 // Not scheduled yet (no vercel.json cron; see docs/STATUS.md). When a Vercel Cron
@@ -53,6 +55,9 @@ async function runCleanup(request: NextRequest) {
   if (classDeleteError) {
     return NextResponse.json({ error: classDeleteError.message }, { status: 500 });
   }
+
+  // Deleted listings may remove a state/category from the /classes dropdowns
+  revalidateTag(CLASS_FILTER_OPTIONS_TAG);
 
   // Delete the submissions themselves
   const { error: submissionDeleteError } = await supabaseAdmin

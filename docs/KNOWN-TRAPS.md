@@ -14,6 +14,8 @@ Mistakes Claude (and humans) have already made on this project, plus the ones it
 | Creating a `SECURITY DEFINER` SQL function and moving on | Everyone, logged out included, can call it via `/rest/v1/rpc/`. Check `is_admin()` inside or revoke execute. See migration 001. |
 | Running Playwright against `npm run dev` | Turbopack (`--turbo`) fails to load JS chunks in this folder (path has spaces/parens), so pages render blank. Test against `npm run build && npm run start`. |
 | Awaiting a Supabase call inside `onAuthStateChange` | Deadlocks the auth client; `getSession()` hangs elsewhere (blank `/login`). Keep the callback sync and defer with `setTimeout`. Fixed in `Header.tsx` 2026-11-02. |
+| Writing to the `classes` table (insert, update, delete) and moving on | The `/classes` state/category dropdowns are cached (`lib/class-filter-options.ts`). Call `revalidateTag(CLASS_FILTER_OPTIONS_TAG)` after the write succeeds, like the approve, checkout-edit, and cleanup routes do. Forget it and the dropdowns stay stale for up to 5 minutes. |
+| Calling `router.push` directly on `/classes` | Use `updateQuery()` from `components/classes/ClassesNavigation.tsx`. Direct pushes skip the instant skeleton and optimistic values, and can drop a quick earlier change. |
 | Writing `pages/` or `getServerSideProps` | App Router only |
 | Tailwind v4 syntax (`@import "tailwindcss"`, `@theme`) | Repo is on Tailwind v3 |
 | Naming an API file `approve-route.ts` | Next only routes `route.ts`. A stray `app/admin/submissions/[id]/approve/approve-route.ts` used to exist and did nothing (deleted 2026-11-02). |

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { getStripeServer } from '@/lib/stripe-server';
+import { getSupabaseAdmin } from '@/lib/supabase-admin';
+import { getUsableCoupon } from '@/lib/coupons';
 
 export async function POST(request: NextRequest) {
   const cookieStore = await cookies();
@@ -27,14 +29,9 @@ export async function POST(request: NextRequest) {
   // ── Coupon validation path ──────────────────────────────────────────────────
   // Read-only check — coupon is incremented later at form submission
   if (couponCode) {
-    const { data: coupon } = await supabase
-      .from('coupon_codes')
-      .select('*')
-      .eq('code', couponCode)
-      .eq('is_active', true)
-      .single();
+    const coupon = await getUsableCoupon(getSupabaseAdmin(), String(couponCode));
 
-    if (!coupon || (coupon.max_uses !== null && coupon.current_uses >= coupon.max_uses)) {
+    if (!coupon) {
       return NextResponse.json({ error: 'Invalid or expired coupon code' }, { status: 400 });
     }
 

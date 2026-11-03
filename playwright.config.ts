@@ -1,5 +1,13 @@
 import { defineConfig, devices } from '@playwright/test';
 
+// Load test account credentials (TEST_USER_*, TEST_ADMIN_*) from .env.local.
+// Uses Node's built-in loader; no dotenv dependency. Already-set vars win.
+try {
+  process.loadEnvFile('.env.local');
+} catch {
+  // No .env.local (e.g. CI): rely on the environment instead
+}
+
 export default defineConfig({
   testDir: './tests/e2e',
   testIgnore: ['**\/._*'],

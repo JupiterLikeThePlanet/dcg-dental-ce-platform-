@@ -66,14 +66,24 @@ const Header: React.FC = () => {
 
     initializeAuth();
 
+    // Supabase holds its auth lock while this callback runs. Awaiting another
+    // Supabase call in here (fetchUserData) deadlocks the client, which left
+    // getSession() hanging elsewhere (e.g. /login rendered blank when logged in).
+    // So the callback stays synchronous and defers DB reads with setTimeout.
+    // See https://supabase.com/docs/reference/javascript/auth-onauthstatechange
+    const loadUserData = (userId: string) => {
+      setTimeout(async () => {
+        setUserData(await fetchUserData(userId));
+      }, 0);
+    };
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event: AuthChangeEvent, session) => {
+      (event: AuthChangeEvent, session) => {
         switch (event) {
           case 'SIGNED_IN':
             if (session?.user) {
               setUser(session.user);
-              const data = await fetchUserData(session.user.id);
-              setUserData(data);
+              loadUserData(session.user.id);
             }
             break;
 
@@ -91,8 +101,7 @@ const Header: React.FC = () => {
           case 'USER_UPDATED':
             if (session?.user) {
               setUser(session.user);
-              const data = await fetchUserData(session.user.id);
-              setUserData(data);
+              loadUserData(session.user.id);
             }
             break;
         }

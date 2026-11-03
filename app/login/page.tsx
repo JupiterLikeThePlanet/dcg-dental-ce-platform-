@@ -37,7 +37,7 @@ export default function LoginPage() {
       {isLoggedIn ? (
         <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-100">
           <div className="mb-8 text-center">
-            <h1 className="text-3xl font-bold text-gray-900">You're already logged in</h1>
+            <h1 className="text-3xl font-bold text-gray-900">You&apos;re already logged in</h1>
             <p className="text-gray-500 text-sm mt-2">Not you? Logout and switch accounts</p>
           </div>
           <div className="flex flex-col gap-3">

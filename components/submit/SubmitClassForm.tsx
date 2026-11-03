@@ -25,8 +25,7 @@ interface FormData {
   end_date: string;
   start_time: string;
   end_time: string;
-  timezone: string;
-  
+
   // Location
   attendance_type: string;
   address_line1: string;
@@ -56,7 +55,6 @@ const initialFormData: FormData = {
   end_date: '',
   start_time: '08:00',
   end_time: '17:00',
-  timezone: 'America/Chicago',
   attendance_type: '',
   address_line1: '',
   address_line2: '',

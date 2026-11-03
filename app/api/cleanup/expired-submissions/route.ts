@@ -1,10 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase-admin';
 
-// Secured with CRON_SECRET env var — set this in your Vercel project settings
-// Call via: POST /api/cleanup/expired-submissions
-// Authorization: Bearer <CRON_SECRET>
+// Secured with CRON_SECRET env var — set this in your Vercel project settings.
+// Not scheduled yet (no vercel.json cron; see docs/STATUS.md). When a Vercel Cron
+// is added, it sends GET with `Authorization: Bearer <CRON_SECRET>` automatically.
+// POST is kept for manual runs with the same header.
+export async function GET(request: NextRequest) {
+  return runCleanup(request);
+}
+
 export async function POST(request: NextRequest) {
+  return runCleanup(request);
+}
+
+async function runCleanup(request: NextRequest) {
   const authHeader = request.headers.get('authorization');
   const cronSecret = process.env.CRON_SECRET;
 

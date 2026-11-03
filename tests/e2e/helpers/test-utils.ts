@@ -1,13 +1,26 @@
 import { Page } from '@playwright/test';
 
+/**
+ * Staging test accounts. Credentials come from env vars (set them in
+ * .env.local, which playwright.config.ts loads), never from the repo.
+ * Read lazily so specs that don't log in still run without them.
+ */
+function requireEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`Missing ${name}. Add it to .env.local (staging test account). See docs/testing-guide.md.`);
+  }
+  return value;
+}
+
 export const TEST_USER = {
-  email: 'testuser@example.com',
-  password: 'testpassword123',
+  get email() { return requireEnv('TEST_USER_EMAIL'); },
+  get password() { return requireEnv('TEST_USER_PASSWORD'); },
 };
 
 export const TEST_ADMIN = {
-  email: 'testadmin@example.com',
-  password: 'testpassword123',
+  get email() { return requireEnv('TEST_ADMIN_EMAIL'); },
+  get password() { return requireEnv('TEST_ADMIN_PASSWORD'); },
 };
 
 export async function login(page: Page, user = TEST_USER) {
@@ -22,6 +35,20 @@ export async function logout(page: Page) {
   await page.click('button:has-text("Logout")');
   await page.waitForURL('/', { timeout: 10000 });
 }
+
+/** Apply the staging test coupon at the payment gate so the form appears. */
+export async function passThroughPaymentGate(page: Page) {
+  await page.waitForSelector('input[placeholder="Enter coupon code"]', { timeout: 10000 });
+  await page.fill('input[placeholder="Enter coupon code"]', 'TESTFREE');
+  await page.click('button:has-text("Apply")');
+  await page.waitForSelector('#title', { timeout: 10000 });
+}
+
+/**
+ * Status badges in a table. Excludes the empty colored dot inside each badge
+ * (also .rounded-full) and copies hidden at the current screen size.
+ */
+export const STATUS_BADGES = 'tbody span.rounded-full.text-xs:visible';
 
 /** Navigate to the next step and wait for the step content to appear. */
 export async function goToNextStep(page: Page, waitForSelector: string) {
@@ -43,7 +70,8 @@ export async function fillAllSteps(page: Page, titleSuffix = '') {
   await page.fill('#start_date', future.toISOString().split('T')[0]);
   await goToNextStep(page, '#address_line1');
 
-  // Step 3
+  // Step 3 (attendance type is required; street address and ZIP are optional)
+  await page.selectOption('#attendance_type', 'on-site');
   await page.fill('#address_line1', '123 Main St');
   await page.fill('#city', 'New Orleans');
   // state defaults to LA — no change needed

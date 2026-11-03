@@ -1,9 +1,10 @@
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import { redirect } from 'next/navigation';
-import Stripe from 'stripe';
+import { getStripeServer } from '@/lib/stripe-server';
 import SubmitClassGate from '@/components/submit/SubmitClassGate';
 import CanceledNotice from '@/components/submit/CanceledNotice';
+import { getSupabaseAdmin } from '@/lib/supabase-admin';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,10 +41,19 @@ export default async function SubmitClassPage({ searchParams }: PageProps) {
   const paidParam = typeof params.paid === 'string' ? params.paid : null;
   if (paidParam) {
     try {
-      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+      const stripe = getStripeServer();
       const session = await stripe.checkout.sessions.retrieve(paidParam);
       if (session.payment_status === 'paid' && session.metadata?.userId === user.id) {
-        verifiedStripeSessionId = paidParam;
+        // A payment that already produced a submission can't be reused
+        const { data: alreadyUsed } = await getSupabaseAdmin()
+          .from('submissions')
+          .select('id')
+          .eq('stripe_payment_id', session.payment_intent as string)
+          .limit(1);
+
+        if (!alreadyUsed || alreadyUsed.length === 0) {
+          verifiedStripeSessionId = paidParam;
+        }
       }
     } catch {
       // Invalid or unrecognised session — fall through to show payment gate

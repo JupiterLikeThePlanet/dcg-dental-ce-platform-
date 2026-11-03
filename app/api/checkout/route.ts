@@ -3,10 +3,16 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { getSupabaseAdmin } from '@/lib/supabase-admin';
 import { getStripeServer } from '@/lib/stripe-server';
+import { getUsableCoupon, claimCouponUse } from '@/lib/coupons';
+import { pickSubmissionFields } from '@/lib/submission-fields';
 
 export async function POST(request: NextRequest) {
   try {
-    const { submissionData, stripeSessionId, grantedCoupon, couponCode, originalSubmissionId, editClassOnly } = await request.json();
+    const body = await request.json();
+    const { stripeSessionId, grantedCoupon, couponCode, originalSubmissionId, editClassOnly } = body;
+    // Only listing fields get through. Status, ownership, payment and
+    // soft-delete columns are always set by this route, never by the client.
+    const submissionData = pickSubmissionFields(body.submissionData);
     const stripe = getStripeServer();
     const supabaseAdmin = getSupabaseAdmin();
 
@@ -133,21 +139,11 @@ export async function POST(request: NextRequest) {
 
         // Payment edit: check coupon first
         if (couponCode) {
-          const { data: coupon } = await supabase
-            .from('coupon_codes')
-            .select('*')
-            .eq('code', couponCode)
-            .eq('is_active', true)
-            .single();
+          const coupon = await getUsableCoupon(supabaseAdmin, String(couponCode));
 
-          if (!coupon || (coupon.max_uses !== null && coupon.current_uses >= coupon.max_uses)) {
+          if (!coupon || !(await claimCouponUse(supabaseAdmin, coupon))) {
             return NextResponse.json({ error: 'Invalid or expired coupon code' }, { status: 400 });
           }
-
-          await supabaseAdmin
-            .from('coupon_codes')
-            .update({ current_uses: coupon.current_uses + 1 })
-            .eq('id', coupon.id);
 
           await supabaseAdmin
             .from('submissions')
@@ -167,7 +163,7 @@ export async function POST(request: NextRequest) {
                 currency: 'usd',
                 product_data: {
                   name: 'CE Class Listing',
-                  description: `Listing: ${submissionData.title.substring(0, 50)}`,
+                  description: `Listing: ${String(submissionData.title ?? '').substring(0, 50)}`,
                 },
                 unit_amount: 500,
               },
@@ -213,21 +209,11 @@ export async function POST(request: NextRequest) {
 
     // Coupon path — validate & increment, then create submission
     if (grantedCoupon) {
-      const { data: coupon } = await supabase
-        .from('coupon_codes')
-        .select('*')
-        .eq('code', grantedCoupon)
-        .eq('is_active', true)
-        .single();
+      const coupon = await getUsableCoupon(supabaseAdmin, String(grantedCoupon));
 
-      if (!coupon || (coupon.max_uses !== null && coupon.current_uses >= coupon.max_uses)) {
+      if (!coupon || !(await claimCouponUse(supabaseAdmin, coupon))) {
         return NextResponse.json({ error: 'Coupon is no longer valid' }, { status: 400 });
       }
-
-      await supabaseAdmin
-        .from('coupon_codes')
-        .update({ current_uses: coupon.current_uses + 1 })
-        .eq('id', coupon.id);
 
       const { error: insertError } = await supabase
         .from('submissions')
@@ -258,6 +244,24 @@ export async function POST(request: NextRequest) {
         stripePaymentIntentId = session.payment_intent as string;
       } catch {
         return NextResponse.json({ error: 'Invalid payment session' }, { status: 400 });
+      }
+
+      // One payment, one listing. Without this, revisiting /submit?paid=<session>
+      // lets the same $5 create unlimited submissions.
+      if (!stripePaymentIntentId) {
+        return NextResponse.json({ error: 'Payment not verified' }, { status: 400 });
+      }
+      const { data: alreadyUsed } = await supabaseAdmin
+        .from('submissions')
+        .select('id')
+        .eq('stripe_payment_id', stripePaymentIntentId)
+        .limit(1);
+
+      if (alreadyUsed && alreadyUsed.length > 0) {
+        return NextResponse.json(
+          { error: 'This payment has already been used for a submission' },
+          { status: 409 }
+        );
       }
 
       const { error: insertError } = await supabase

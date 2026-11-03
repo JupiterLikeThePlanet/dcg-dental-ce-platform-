@@ -7,7 +7,7 @@ export default function ClassNotFound() {
         Class Not Found
       </h1>
       <p className="text-gray-600 mb-8">
-        Sorry, we couldn't find the class you're looking for. 
+        Sorry, we couldn&apos;t find the class you&apos;re looking for. 
         It may have been removed or the link might be incorrect.
       </p>
       <Link

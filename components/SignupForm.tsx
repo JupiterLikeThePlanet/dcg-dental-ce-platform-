@@ -45,7 +45,7 @@ const SignupForm: React.FC = () => {
     return (
       <div className="p-6 bg-green-50 border border-green-200 text-green-800 rounded text-center">
         <h3 className="font-bold text-lg mb-2">Check your email!</h3>
-        <p className="text-sm">We've sent a verification link to <strong>{email}</strong>.</p>
+        <p className="text-sm">We&apos;ve sent a verification link to <strong>{email}</strong>.</p>
         <div className="mt-4">
           <Link href="/login" className="text-green-700 font-bold hover:underline">Return to Login</Link>
         </div>

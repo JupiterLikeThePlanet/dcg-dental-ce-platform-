@@ -5,6 +5,7 @@ import SortControls from '@/components/classes/SortControls';
 import FilterBar from '@/components/classes/FilterBar';
 import ClassResults from '@/components/classes/ClassResults';
 import ClassGridSkeleton from '@/components/classes/ClassGridSkeleton';
+import { ClassesNavProvider, PendingResults } from '@/components/classes/ClassesNavigation';
 
 // Force dynamic rendering (no caching) so we always get fresh data
 export const dynamic = 'force-dynamic';
@@ -108,6 +109,7 @@ export default async function ClassesPage({ searchParams }: PageProps) {
         </h1>
       </div>
 
+      <ClassesNavProvider>
       {/* Search and Filter Bar */}
       <FilterBar
         currentSearch={searchQuery}
@@ -121,17 +123,20 @@ export default async function ClassesPage({ searchParams }: PageProps) {
       {/* Sort Controls */}
       <SortControls currentSort={validSort} currentDirection={validDirection} />
 
-      {/* Count, grid, and pagination stream in; skeleton shows meanwhile */}
-      <Suspense key={resultsKey} fallback={<ClassGridSkeleton />}>
-        <ClassResults
-          supabase={supabase}
-          filters={filters}
-          sortColumn={sortColumnMap[validSort]}
-          ascending={validDirection === 'asc'}
-          currentPage={currentPage}
-          today={today}
-        />
-      </Suspense>
+      {/* Skeleton from the moment of the click (PendingResults) until results stream in (Suspense) */}
+      <PendingResults>
+        <Suspense key={resultsKey} fallback={<ClassGridSkeleton />}>
+          <ClassResults
+            supabase={supabase}
+            filters={filters}
+            sortColumn={sortColumnMap[validSort]}
+            ascending={validDirection === 'asc'}
+            currentPage={currentPage}
+            today={today}
+          />
+        </Suspense>
+      </PendingResults>
+      </ClassesNavProvider>
     </div>
   );
 }

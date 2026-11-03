@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useClassesNav } from './ClassesNavigation';
 
 type SortOption = 'date' | 'instructor' | 'price' | 'location';
 type SortDirection = 'asc' | 'desc';
@@ -17,23 +17,24 @@ const sortLabels: Record<SortOption, string> = {
   location: 'Location',
 };
 
-export default function SortControls({ currentSort, currentDirection }: SortControlsProps) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
+export default function SortControls({ currentSort: confirmedSort, currentDirection: confirmedDirection }: SortControlsProps) {
+  const { pendingQuery, updateQuery } = useClassesNav();
+
+  // While a change is loading, highlight what the user picked (values only ever come from handleSortChange).
+  const currentSort = pendingQuery ? ((pendingQuery.get('sort') as SortOption) || 'date') : confirmedSort;
+  const currentDirection = pendingQuery ? ((pendingQuery.get('dir') as SortDirection) || 'asc') : confirmedDirection;
 
   const handleSortChange = (sort: SortOption) => {
-    const params = new URLSearchParams(searchParams.toString());
-    
-    // If clicking the same sort, toggle direction
-    if (sort === currentSort) {
-      params.set('dir', currentDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      // New sort field, default to ascending (except price which defaults to low-high)
-      params.set('sort', sort);
-      params.set('dir', 'asc');
-    }
-    
-    router.push(`/classes?${params.toString()}`);
+    updateQuery((params) => {
+      // If clicking the same sort, toggle direction
+      if (sort === currentSort) {
+        params.set('dir', currentDirection === 'asc' ? 'desc' : 'asc');
+      } else {
+        // New sort field, default to ascending (except price which defaults to low-high)
+        params.set('sort', sort);
+        params.set('dir', 'asc');
+      }
+    });
   };
 
   const getArrow = (sort: SortOption) => {

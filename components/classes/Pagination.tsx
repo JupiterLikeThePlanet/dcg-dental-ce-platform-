@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useClassesNav } from './ClassesNavigation';
 
 interface PaginationProps {
   currentPage: number;
@@ -15,16 +15,13 @@ export default function Pagination({
   totalItems,
   itemsPerPage 
 }: PaginationProps) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
+  const { updateQuery } = useClassesNav();
 
   // Don't show pagination if only one page
   if (totalPages <= 1) return null;
 
   const handlePageChange = (page: number) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set('page', page.toString());
-    router.push(`/classes?${params.toString()}`);
+    updateQuery((params) => params.set('page', page.toString()));
   };
 
   // Calculate which items are being shown

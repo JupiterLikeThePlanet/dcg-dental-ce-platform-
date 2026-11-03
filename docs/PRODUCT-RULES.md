@@ -39,7 +39,7 @@ Business logic the code can't explain on its own. If a request conflicts with a 
 - Categories follow AGD subject areas (Basic Sciences, Endodontics, Implants, etc.). The list lives in `SubmitClassForm.tsx`.
 - Attendance type: `on-site`, `hybrid`, `remote`, `pre-recorded`
 - Street address is recommended, not required, for on-site and hybrid. City and state are required for every attendance type, remote included.
-- All 50 states are allowed (no DC). The form defaults to `LA`; the client is Louisiana-based, so expect Gulf South listings.
+- All 50 states plus DC (Washington, D.C.) are allowed. Browse only lists states that have at least one approved class (`app/classes/page.tsx`). The form defaults to `LA`; the client is Louisiana-based, so expect Gulf South listings.
 - Classes whose `end_date` has passed are hidden from browse.
 - Approved submissions older than one year past `end_date` get hard-deleted (submission and class) by `/api/cleanup/expired-submissions`. Nothing runs it on a schedule yet; adding the cron is on hold until the soft-delete decision.
 

@@ -27,13 +27,15 @@ Last checked against the repo: 2026-11-01. Last commit on `main`: 2026-05-01 (at
 - Fixed: `/login` rendered blank for logged-in users (auth deadlock in `Header.tsx` `onAuthStateChange`). Covered by `tests/e2e/auth.spec.ts`.
 - Playwright specs updated for current UI (attendance type required, optional address/ZIP, filter tabs, template goes through payment gate, no double login).
 - Launch check 2026-11-02 (code): tsc, lint (1 known warning), build, no module-level clients, no auth-helpers, no stray route files, no real keys in git, `.env*` ignored. Prod DB (read-only, counts only): RLS on all 4 tables, 2 admins, no test-named coupons, no live test classes, no `@example.com` users.
+- Paywall and coupons hidden behind `PAYWALL_ENABLED` (off unless `"true"`). Free submit path in checkout, gate route refuses, Coupons tab hidden, tests follow the flag. Stripe/coupon code and policies kept. Playwright (chromium, prod build vs staging) 2026-11-02: submit-class + admin 46 passed / 6 skipped, dashboard 27 passed.
 
 ## Open
 - [ ] Playwright (chromium, prod build, 2026-11-02): all specs pass except signup (staging can't send confirmation email, needs custom SMTP). Test data is already seeded. The `chromium-slow` project hasn't been run yet.
 - [ ] Rotate the staging test passwords (old ones are in git history)
 - [ ] Staging email: custom SMTP (signup returns 500 "Error sending confirmation email"). Check prod's SMTP too.
 - [ ] Migration: unique index on `submissions.stripe_payment_id` (backs the one-payment rule at the DB level)
-- [ ] Hide the paywall and coupons on the live site (client wants free listings), ideally behind a flag. Don't delete Stripe/coupon code or the `coupon_codes` policies; they may come back.
+- [ ] Add `PAYWALL_ENABLED=false` to Vercel Production and Preview (the code already treats unset as off; this just makes the setting visible)
+- [ ] Remove the legacy `pending_payment` status (prod has 0 rows as of 2026-11-02; staging has 1 test row). Needs a migration for the status CHECK plus code cleanup in checkout, success page, webhook, badges.
 - [ ] Decide: should editing an approved listing go back to review? Today it updates the live class immediately.
 - [ ] Decide: finish soft delete (nothing sets `deleted_at`; cleanup hard-deletes) or drop the column
 - [ ] No recovery for "paid but didn't submit" beyond revisiting the same `/submit?paid=` URL

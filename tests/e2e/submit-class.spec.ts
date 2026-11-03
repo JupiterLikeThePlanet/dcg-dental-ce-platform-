@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { login, fillAllSteps, goToNextStep, passThroughPaymentGate } from './helpers/test-utils';
+import { login, fillAllSteps, goToNextStep, passThroughPaymentGate, PAYWALL_ENABLED } from './helpers/test-utils';
 
 // ─── Shared setup ────────────────────────────────────────────────────────────
 // All form tests apply a valid coupon at the payment gate so they land on step 1.
@@ -220,6 +220,8 @@ test.describe('Step 4: Details', () => {
 // ─── Payment Gate ─────────────────────────────────────────────────────────────
 
 test.describe('Payment Gate', () => {
+  test.skip(!PAYWALL_ENABLED, 'Paywall is off (PAYWALL_ENABLED is not "true")');
+
   // These tests need a fresh /submit page without the gate already passed
   test('payment gate is shown before the form', async ({ page }) => {
     await login(page);
@@ -266,5 +268,31 @@ test.describe('Payment Gate', () => {
     await fillAllSteps(page, String(Date.now()));
     await page.click('button:has-text("Submit for Review")');
     await page.waitForURL(/\/submit\/success/, { timeout: 15000 });
+  });
+});
+
+// ─── Free listings (paywall off) ──────────────────────────────────────────────
+
+test.describe('Free Submission', () => {
+  test.skip(PAYWALL_ENABLED, 'Paywall is on (PAYWALL_ENABLED is "true")');
+
+  // The shared beforeEach has already logged in and opened /submit
+  test('form shows right away with no payment gate', async ({ page }) => {
+    await expect(page.locator('#title')).toBeVisible();
+    await expect(page.locator('text=One step before your submission')).not.toBeVisible();
+    await expect(page.locator('input[placeholder="Enter coupon code"]')).not.toBeVisible();
+    await expect(page.locator('text=List your dental continuing education course.')).toBeVisible();
+  });
+
+  test('submitting without paying lands on the success page', async ({ page }) => {
+    await fillAllSteps(page, String(Date.now()));
+    await page.click('button:has-text("Submit for Review")');
+    await page.waitForURL(/\/submit\/success\?method=free/, { timeout: 15000 });
+    await expect(page.locator('h1', { hasText: 'Submission Received!' })).toBeVisible();
+  });
+
+  test('payment-gate API refuses requests', async ({ page }) => {
+    const res = await page.request.post('/api/payment-gate', { data: { initiateStripe: true } });
+    expect(res.status()).toBe(404);
   });
 });

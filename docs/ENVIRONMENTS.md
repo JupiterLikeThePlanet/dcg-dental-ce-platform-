@@ -19,6 +19,7 @@ Names only. Never write secret values into this file or any other tracked file.
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | yes | `pk_test_` or `pk_live_` |
 | `STRIPE_SECRET_KEY` | **no** | `sk_test_` or `sk_live_` |
 | `STRIPE_WEBHOOK_SECRET` | **no** | different per webhook endpoint |
+| `PAYWALL_ENABLED` | **no** (server-only) | `true` turns on the $5 gate and coupons. Anything else, or unset, = free listings. Set to `false` in Vercel Production and Preview. Changing it needs a redeploy. Not a secret. |
 | `CRON_SECRET` | **no** | guards the cleanup route. Vercel Cron sends it automatically as a Bearer header when set in the project. |
 
 ## Where each environment points

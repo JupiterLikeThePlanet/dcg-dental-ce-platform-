@@ -10,9 +10,11 @@ interface SubmitClassGateProps {
   userEmail: string;
   /** Server-verified Stripe session ID (from ?paid= param). Non-null means payment is confirmed. */
   verifiedStripeSessionId: string | null;
+  /** From isPaywallEnabled() on the server. When false, the gate is skipped. */
+  paywallEnabled: boolean;
 }
 
-export default function SubmitClassGate({ userId, userEmail, verifiedStripeSessionId }: SubmitClassGateProps) {
+export default function SubmitClassGate({ userId, userEmail, verifiedStripeSessionId, paywallEnabled }: SubmitClassGateProps) {
   const [grantedCoupon, setGrantedCoupon] = useState<string | null>(null);
   const searchParams = useSearchParams();
 
@@ -22,7 +24,8 @@ export default function SubmitClassGate({ userId, userEmail, verifiedStripeSessi
   // Edit mode bypasses the payment gate — payment was already handled for that submission.
   // Templates are treated as new submissions and must go through the gate.
   // Stripe-verified or coupon-granted go straight to the form.
-  if (isEdit || verifiedStripeSessionId || grantedCoupon) {
+  // Paywall off: everyone goes straight to the form; the checkout route allows the free insert.
+  if (!paywallEnabled || isEdit || verifiedStripeSessionId || grantedCoupon) {
     return (
       <SubmitClassForm
         userId={userId}

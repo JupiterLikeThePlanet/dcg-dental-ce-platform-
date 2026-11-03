@@ -37,7 +37,18 @@ export async function logout(page: Page) {
 }
 
 /** Apply the staging test coupon at the payment gate so the form appears. */
+/**
+ * Mirrors lib/paywall.ts. Both the server (npm run start) and Playwright read
+ * PAYWALL_ENABLED from .env.local, so the tests follow whatever mode the app is in.
+ */
+export const PAYWALL_ENABLED = process.env.PAYWALL_ENABLED === 'true';
+
 export async function passThroughPaymentGate(page: Page) {
+  if (!PAYWALL_ENABLED) {
+    // No gate: the form shows right away
+    await page.waitForSelector('#title', { timeout: 10000 });
+    return;
+  }
   await page.waitForSelector('input[placeholder="Enter coupon code"]', { timeout: 10000 });
   await page.fill('input[placeholder="Enter coupon code"]', 'TESTFREE');
   await page.click('button:has-text("Apply")');

@@ -4,8 +4,14 @@ import { cookies } from 'next/headers';
 import { getStripeServer } from '@/lib/stripe-server';
 import { getSupabaseAdmin } from '@/lib/supabase-admin';
 import { getUsableCoupon } from '@/lib/coupons';
+import { isPaywallEnabled } from '@/lib/paywall';
 
 export async function POST(request: NextRequest) {
+  // Paywall off: no coupon checks and no Stripe sessions, so nobody pays by mistake.
+  if (!isPaywallEnabled()) {
+    return NextResponse.json({ error: 'Payments are turned off. Listings are free.' }, { status: 404 });
+  }
+
   const cookieStore = await cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

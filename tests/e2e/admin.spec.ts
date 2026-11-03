@@ -10,7 +10,7 @@
  */
 
 import { test, expect, Page } from '@playwright/test';
-import { login, TEST_ADMIN, TEST_USER, STATUS_BADGES } from './helpers/test-utils';
+import { login, TEST_ADMIN, TEST_USER, STATUS_BADGES, PAYWALL_ENABLED } from './helpers/test-utils';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -61,6 +61,17 @@ test.describe('Admin Access', () => {
 test.describe('Admin Dashboard — Submissions Queue', () => {
   test.beforeEach(async ({ page }) => {
     await gotoAdmin(page);
+  });
+
+  test('Coupons tab and Payment column are shown only when the paywall is on', async ({ page }) => {
+    const couponsTab = page.locator('button', { hasText: 'Coupons' });
+    const paymentHeader = page.locator('th', { hasText: 'Payment' });
+    if (PAYWALL_ENABLED) {
+      await expect(couponsTab).toBeVisible();
+    } else {
+      await expect(couponsTab).toHaveCount(0);
+      await expect(paymentHeader).toHaveCount(0);
+    }
   });
 
   test('shows stat cards for Pending Review, Approved, Rejected, Total', async ({ page }) => {

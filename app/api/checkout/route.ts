@@ -5,6 +5,7 @@ import { getSupabaseAdmin } from '@/lib/supabase-admin';
 import { getStripeServer } from '@/lib/stripe-server';
 import { getUsableCoupon, claimCouponUse } from '@/lib/coupons';
 import { pickSubmissionFields } from '@/lib/submission-fields';
+import { isPaywallEnabled } from '@/lib/paywall';
 
 export async function POST(request: NextRequest) {
   try {
@@ -205,6 +206,27 @@ export async function POST(request: NextRequest) {
       }
 
       return NextResponse.json({ success: true, isAdmin: true });
+    }
+
+    // Paywall off — listings are free. Any coupon or Stripe session sent by a
+    // stale client is ignored so nobody gets charged or uses up a coupon.
+    if (!isPaywallEnabled()) {
+      const { error: insertError } = await supabase
+        .from('submissions')
+        .insert([{
+          ...submissionData,
+          submitted_by: user.id,
+          status: 'pending',
+          // null = no payment involved. Must be explicit: the column defaults to 5.00.
+          payment_amount: null,
+        }]);
+
+      if (insertError) {
+        console.error('Insert error:', insertError);
+        return NextResponse.json({ error: insertError.message }, { status: 500 });
+      }
+
+      return NextResponse.json({ success: true, isFree: true });
     }
 
     // Coupon path — validate & increment, then create submission

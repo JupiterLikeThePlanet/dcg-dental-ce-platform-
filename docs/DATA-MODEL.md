@@ -31,7 +31,7 @@ Everything a provider sends in, any status.
 - Who: `instructor_name`, `provider_name`, `contact_email`, `contact_phone`
 - Details: `price`, `ce_credits`, `registration_url`, `image_url` (the form fills in a stock Unsplash image if left blank, `SubmitClassForm.tsx`)
 - Geo: `latitude`, `longitude` (numeric, nullable). They exist in both tables. The approve route copies them to `classes`, but nothing in the app writes them.
-- Workflow: `submitted_by` (uuid → users, cascade), `status`, `stripe_payment_id`, `payment_amount` (DB default 5.00; code always sets 5.00 or 0 explicitly), `coupon_code` (what the app writes), `used_coupon_code` (legacy, unused by the app), `reviewed_by`, `reviewed_at`, `rejection_reason`
+- Workflow: `submitted_by` (uuid → users, cascade), `status`, `stripe_payment_id`, `payment_amount` (DB default 5.00; code always sets it explicitly: 5.00 paid, 0 coupon/admin, null free listing with the paywall off), `coupon_code` (what the app writes), `used_coupon_code` (legacy, unused by the app), `reviewed_by`, `reviewed_at`, `rejection_reason`
 - `created_at`, `updated_at`
 
 `status` enum: `pending_payment` | `pending` | `approved` | `rejected`

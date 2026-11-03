@@ -48,9 +48,11 @@ interface Submission {
 
 interface SubmissionDetailProps {
   submission: Submission;
+  /** Paywall on: show Payment and Stripe ID. Off: hide every money reference. */
+  showPayment: boolean;
 }
 
-export default function SubmissionDetail({ submission }: SubmissionDetailProps) {
+export default function SubmissionDetail({ submission, showPayment }: SubmissionDetailProps) {
   const router = useRouter();
   const [isApproving, setIsApproving] = useState(false);
   const [isRejecting, setIsRejecting] = useState(false);
@@ -203,24 +205,28 @@ export default function SubmissionDetail({ submission }: SubmissionDetailProps) 
             <p className="text-gray-500">Submitted On</p>
             <p className="font-medium">{formatDateTime(submission.created_at)}</p>
           </div>
-          <div>
-            <p className="text-gray-500">Payment</p>
-            {submission.coupon_code ? (
-              <p className="font-medium text-purple-600">Coupon: {submission.coupon_code}</p>
-            ) : submission.payment_amount === 0 ? (
-              <p className="font-medium text-gray-500">Admin (Free)</p>
-            ) : (
-              <p className="font-medium text-green-600">
-                ${submission.payment_amount?.toFixed(2) || '0.00'}
-              </p>
-            )}
-          </div>
-          <div>
-            <p className="text-gray-500">Stripe ID</p>
-            <p className="font-medium font-mono text-xs">
-              {submission.stripe_payment_id || '-'}
-            </p>
-          </div>
+          {showPayment && (
+            <>
+              <div>
+                <p className="text-gray-500">Payment</p>
+                {submission.coupon_code ? (
+                  <p className="font-medium text-purple-600">Coupon: {submission.coupon_code}</p>
+                ) : submission.payment_amount === 0 ? (
+                  <p className="font-medium text-gray-500">Admin (Free)</p>
+                ) : (
+                  <p className="font-medium text-green-600">
+                    ${submission.payment_amount?.toFixed(2) || '0.00'}
+                  </p>
+                )}
+              </div>
+              <div>
+                <p className="text-gray-500">Stripe ID</p>
+                <p className="font-medium font-mono text-xs">
+                  {submission.stripe_payment_id || '-'}
+                </p>
+              </div>
+            </>
+          )}
         </div>
 
         {submission.reviewed_at && (

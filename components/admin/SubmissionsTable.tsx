@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import StatusBadge from './StatusBadge';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import EyeIcon from '@/components/ui/EyeIcon';
+import RestoreIcon from '@/components/ui/RestoreIcon';
 import Tooltip from '@/components/ui/Tooltip';
 import TrashIcon from '@/components/ui/TrashIcon';
 import { REMOVE_LISTING_TITLE, removeListingBody } from '@/components/ui/removeListingCopy';
@@ -129,11 +130,12 @@ export default function SubmissionsTable({
             <button
               type="button"
               data-testid="restore-listing"
+              aria-label="Restore listing"
               onClick={() => handleRestore(submission)}
               disabled={busyId === submission.id}
-              className="px-2 py-1 text-sm font-medium text-gray-500 hover:text-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+              className={iconButton}
             >
-              {busyId === submission.id ? 'Restoring...' : 'Restore'}
+              <RestoreIcon />
             </button>
           </Tooltip>
         ) : (

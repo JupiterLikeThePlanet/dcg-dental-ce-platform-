@@ -33,6 +33,7 @@ Everything a provider sends in, any status.
 - Geo: `latitude`, `longitude` (numeric, nullable). They exist in both tables. The approve route copies them to `classes`, but nothing in the app writes them.
 - Workflow: `submitted_by` (uuid → users, cascade), `status`, `stripe_payment_id`, `payment_amount` (DB default 5.00; code always sets it explicitly: 5.00 paid, 0 coupon/admin, null free listing with the paywall off), `coupon_code` (what the app writes), `used_coupon_code` (legacy, unused by the app), `reviewed_by`, `reviewed_at`, `rejection_reason`
 - `created_at`, `updated_at`
+- Soft delete (migration 003): `deleted_at` timestamptz (null = live, set = removed), `deleted_by` uuid → users (`on delete set null`), indexed on `deleted_at`. Set by `POST /api/submissions/[id]/remove` and cleared by `/restore`, both through `lib/submission-removal.ts`. Admins can remove or restore any listing. Owners can remove or restore their own, but can't restore one an admin removed (`deleted_by` is how the code tells). Restore only works within `RECOVERY_DAYS` (7, `lib/removal-window.ts`). After that the route returns 410, and `/api/cleanup/purge-removed` hard-deletes the row (daily cron, the class goes with it through the cascade).
 
 `status` enum: `pending_payment` | `pending` | `approved` | `rejected`
 
@@ -47,7 +48,7 @@ Live listings. Same content columns as `submissions` (including `latitude` / `lo
 - `posted_by` uuid → users (cascade)
 - `is_admin_post` boolean, default false. The approve route always writes false.
 - `submission_id` uuid → submissions (cascade)
-- `deleted_at` timestamptz. Soft-delete column. Every public query filters `.is('deleted_at', null)`, but **nothing in the app sets it today**. The cleanup route hard-deletes (see `docs/DECISIONS.md`).
+- `deleted_at` timestamptz. Soft-delete column. Every public query filters `.is('deleted_at', null)`. `lib/submission-removal.ts` sets and clears it together with `submissions.deleted_at`. If the class update fails, the submission change is rolled back, so the two never disagree. `classes` has no `deleted_by`; who removed a listing lives on the submission.
 
 ### `coupon_codes`
 
@@ -96,4 +97,6 @@ Any new `SECURITY DEFINER` function must either check `is_admin()` inside or `re
 
 - Read this file or the real schema before writing a query. Don't guess a column name.
 - Public browse reads `classes` only, with all three filters: `status = 'approved'`, `deleted_at is null`, and `end_date` null or today or later (`app/classes/page.tsx`).
+- Dashboard and admin queries on `submissions` filter `deleted_at is null`. The only exceptions are the admin **Removed** tab and the provider's **Recently removed** list, which ask for `deleted_at is not null`. Approve, reject and checkout-edit refuse removed rows.
+- Never write `deleted_at` or `deleted_by` directly. Go through `lib/submission-removal.ts` so the submission and the class stay in step.
 - If `types/database.ts` ever gets generated, use those types instead of hand-written interfaces.

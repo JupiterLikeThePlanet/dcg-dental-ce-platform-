@@ -1,8 +1,10 @@
+import { Suspense } from 'react'
 import { createServerClient } from '@supabase/ssr'
 import Link from 'next/link'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import DashboardContent from '@/components/dashboard/DashboardContent';
+import DashboardToast from '@/components/dashboard/DashboardToast';
 import { purgeCutoffIso } from '@/lib/removal-window';
 
 export const dynamic = 'force-dynamic';
@@ -71,6 +73,9 @@ export default async function DashboardPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-12">
+      <Suspense fallback={null}>
+        <DashboardToast />
+      </Suspense>
       <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-gray-100 pb-8 mb-8">

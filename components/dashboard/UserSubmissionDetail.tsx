@@ -1,8 +1,12 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import StatusBadge from '@/components/admin/StatusBadge';
+import ConfirmDialog from '@/components/ui/ConfirmDialog';
+import { REMOVE_LISTING_TITLE, removeListingBody } from '@/components/ui/removeListingCopy';
+import { postSubmissionAction } from '@/components/ui/submissionAction';
 
 interface Submission {
   id: string;
@@ -39,6 +43,9 @@ interface UserSubmissionDetailProps {
 
 export default function UserSubmissionDetail({ submission }: UserSubmissionDetailProps) {
   const router = useRouter();
+  const [showRemoveModal, setShowRemoveModal] = useState(false);
+  const [isRemoving, setIsRemoving] = useState(false);
+  const [removeError, setRemoveError] = useState<string | null>(null);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -126,6 +133,22 @@ export default function UserSubmissionDetail({ submission }: UserSubmissionDetai
     router.push('/submit?edit=true');
   };
 
+  const handleRemove = async () => {
+    setIsRemoving(true);
+    setRemoveError(null);
+
+    const result = await postSubmissionAction(submission.id, 'remove');
+    if (!result.ok) {
+      setRemoveError(result.error);
+      setIsRemoving(false);
+      return;
+    }
+
+    setShowRemoveModal(false);
+    router.push('/dashboard?message=removed');
+    router.refresh();
+  };
+
   const getEditButtonText = () => {
     switch (submission.status) {
       case 'rejected': return 'Edit & Resubmit';
@@ -140,21 +163,23 @@ export default function UserSubmissionDetail({ submission }: UserSubmissionDetai
     <div className="space-y-6">
       {/* Header */}
       <div className="bg-white border border-gray-200 rounded-xl p-6">
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-2xl font-bold text-gray-900">{submission.title}</h1>
-              <StatusBadge status={submission.status} />
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-3 mb-1 min-w-0">
+              <h1 className="min-w-0 text-lg font-bold text-gray-900 truncate">{submission.title}</h1>
+              <span className="shrink-0">
+                <StatusBadge status={submission.status} />
+              </span>
             </div>
-            <p className="text-gray-600">{submission.provider_name}</p>
+            <p className="text-gray-600 truncate">{submission.provider_name}</p>
           </div>
           
-          <div className="flex flex-col items-stretch sm:flex-row sm:items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
             {canUseAsTemplate && (
               <button
               
                 onClick={handleUseAsTemplate}
-                className="px-4 py-2 rounded-lg font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors flex items-center gap-2"
+                className="whitespace-nowrap text-sm px-3 py-2 rounded-lg font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors flex items-center gap-2"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                   <path d="M7 9a2 2 0 012-2h6a2 2 0 012 2v6a2 2 0 01-2 2H9a2 2 0 01-2-2V9z" />
@@ -166,7 +191,7 @@ export default function UserSubmissionDetail({ submission }: UserSubmissionDetai
 
             <button
               onClick={handleEdit}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
+              className={`whitespace-nowrap text-sm px-3 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
                 submission.status === 'rejected'
                   ? 'bg-blue-600 text-white hover:bg-blue-700'
                   : 'bg-gray-800 text-white hover:bg-gray-900'
@@ -176,6 +201,19 @@ export default function UserSubmissionDetail({ submission }: UserSubmissionDetai
                 <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
               </svg>
               {getEditButtonText()}
+            </button>
+
+            <button
+              type="button"
+              data-testid="remove-listing"
+              onClick={() => {
+                setRemoveError(null);
+                setShowRemoveModal(true);
+              }}
+              disabled={isRemoving}
+              className="whitespace-nowrap text-sm px-3 py-2 rounded-lg font-medium border border-gray-300 text-red-700 hover:bg-red-50 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Remove
             </button>
           </div>
         </div>
@@ -405,6 +443,19 @@ export default function UserSubmissionDetail({ submission }: UserSubmissionDetai
           </div>
         </div>
       </div>
+      {showRemoveModal && (
+        <ConfirmDialog
+          title={REMOVE_LISTING_TITLE}
+          body={removeListingBody('provider', submission.status)}
+          confirmLabel="Remove"
+          busy={isRemoving}
+          error={removeError}
+          onConfirm={handleRemove}
+          onCancel={() => {
+            if (!isRemoving) setShowRemoveModal(false);
+          }}
+        />
+      )}
     </div>
   );
 }

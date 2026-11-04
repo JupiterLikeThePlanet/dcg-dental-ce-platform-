@@ -120,7 +120,12 @@ export default function AdminTabView({ submissions, emptyMessage, statusTabs, st
               </div>
             )}
 
-            <SubmissionsTable submissions={submissions} emptyMessage={emptyMessage} showPayment={paywallEnabled} />
+            <SubmissionsTable
+              submissions={submissions}
+              emptyMessage={emptyMessage}
+              showPayment={paywallEnabled}
+              statusFilter={statusFilter}
+            />
 
             <p className="text-center text-gray-500 text-sm mt-6">
               Click on any row to view full submission details and approve or reject.

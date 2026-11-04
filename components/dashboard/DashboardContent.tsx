@@ -2,8 +2,10 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import UserSubmissionsTable from './UserSubmissionsTable';
 import { RECOVERY_DAYS, formatPurgeDate } from '@/lib/removal-window';
+import { postSubmissionAction } from '@/components/ui/submissionAction';
 
 type StatusFilter = 'all' | 'pending' | 'approved' | 'rejected';
 
@@ -35,7 +37,23 @@ interface Props {
 }
 
 export default function DashboardContent({ submissions, removedSubmissions, stats }: Props) {
+  const router = useRouter();
   const [activeFilter, setActiveFilter] = useState<StatusFilter>('all');
+  const [restoringId, setRestoringId] = useState<string | null>(null);
+  const [restoreError, setRestoreError] = useState<{ id: string; message: string } | null>(null);
+
+  const handleRestore = async (id: string) => {
+    setRestoringId(id);
+    setRestoreError(null);
+    const result = await postSubmissionAction(id, 'restore');
+    if (!result.ok) {
+      setRestoreError({ id, message: result.error });
+      setRestoringId(null);
+      return;
+    }
+    router.push('/dashboard?message=restored');
+    router.refresh();
+  };
 
   const statCards = [
     {
@@ -169,9 +187,23 @@ export default function DashboardContent({ submissions, removedSubmissions, stat
                   <p className="text-sm font-medium text-gray-700 truncate">{s.title}</p>
                   <p className="text-xs text-gray-500 truncate">{s.provider_name}</p>
                 </div>
-                <p className="text-xs text-gray-500 whitespace-nowrap">
-                  Permanently deleted on {formatPurgeDate(s.deleted_at)}
-                </p>
+                <div className="flex flex-col items-start sm:items-end gap-1 shrink-0">
+                  <p className="text-xs text-gray-500 whitespace-nowrap">
+                    Permanently deleted on {formatPurgeDate(s.deleted_at)}
+                  </p>
+                  <button
+                    type="button"
+                    data-testid="restore-listing"
+                    onClick={() => handleRestore(s.id)}
+                    disabled={restoringId === s.id}
+                    className="text-sm font-medium text-blue-600 hover:text-blue-800 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {restoringId === s.id ? 'Restoring...' : 'Restore'}
+                  </button>
+                  {restoreError?.id === s.id && (
+                    <p className="text-xs text-red-600 sm:text-right">{restoreError.message}</p>
+                  )}
+                </div>
               </li>
             ))}
           </ul>

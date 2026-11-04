@@ -29,7 +29,9 @@ Map of where things live. Verified against the repo on 2026-11-01.
 | `admin/submissions/[id]/reject` | Sets `rejected`. `rejection_reason` is optional. |
 | `admin/coupons`, `admin/coupons/[id]` | List, create, delete. No update. Admin only. |
 | `auth/logout`, `auth/update-password` | Auth helpers |
-| `cleanup/expired-submissions` | GET (for Vercel Cron; **not scheduled yet**, no `vercel.json`) or POST (manual), both with `Authorization: Bearer $CRON_SECRET`. Hard-deletes approved submissions and their classes once `end_date` is over a year old. |
+| `submissions/[id]/remove`, `submissions/[id]/restore` | POST. Soft-delete or restore a listing (submission and class together). Admin: any listing. Owner: their own, but they can't restore an admin removal. Restore after 7 days returns 410. Logic in `lib/submission-removal.ts`. |
+| `cleanup/purge-removed` | GET (Vercel Cron, **scheduled daily 09:00 UTC** in `vercel.json`) or POST (manual), both with `Authorization: Bearer $CRON_SECRET`. Hard-deletes submissions removed more than 7 days ago (the class goes with them through the cascade) and logs each one. |
+| `cleanup/expired-submissions` | GET (for Vercel Cron; **not scheduled**, not in `vercel.json`) or POST (manual), both with `Authorization: Bearer $CRON_SECRET`. Hard-deletes approved submissions and their classes once `end_date` is over a year old. |
 
 Plus `app/auth/callback/route.ts`: email verification. Exchanges the code and upserts the `public.users` row.
 
@@ -44,6 +46,8 @@ Plus `app/auth/callback/route.ts`: email verification. Exchanges the code and up
 | `lib/stripe.ts` → `getStripe()` | Stripe.js in the browser |
 | `lib/coupons.ts` | `getUsableCoupon()`, `claimCouponUse()`. All coupon checks go through here. Server only. |
 | `lib/submission-fields.ts` | `pickSubmissionFields()`, the allowlist of user-editable listing fields |
+| `lib/submission-removal.ts` | Remove and restore rules plus the writes. Server only. The only place that should set `deleted_at`. |
+| `lib/removal-window.ts` | `RECOVERY_DAYS` (7) and the purge-date math. Pure, so it's safe in client components. |
 
 ## Middleware
 
@@ -55,7 +59,7 @@ Plus `app/auth/callback/route.ts`: email verification. Exchanges the code and up
 - `components/submit/` the wizard and payment gate
 - `components/dashboard/` user side
 - `components/admin/` admin side
-- `components/ui/` Spinner, Toast, LoadingOverlay
+- `components/ui/` Spinner, Toast, LoadingOverlay, ConfirmDialog, Tooltip, icons (Trash, Eye, Restore), `removeListingCopy` (remove-dialog text), `submissionAction` (client fetch for remove/restore)
 
 ## Edit flow detail
 

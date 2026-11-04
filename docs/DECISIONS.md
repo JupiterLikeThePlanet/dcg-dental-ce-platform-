@@ -11,8 +11,9 @@ Settled questions. Don't reopen these unless Jupiter does.
 | Supabase for DB + Auth | One service, RLS, fast to build on a $5K budget |
 | Supabase built-in auth emails | No extra service to pay for or maintain |
 | Separate staging and prod Supabase projects | Playwright tests are destructive |
-| Soft delete on `classes` | Keeps history, lets admin undo. **Only half built:** the column and the read filters exist, but nothing sets `deleted_at` and there's no undo UI. `TODO: decide` whether to finish it or drop it. |
-| One-year retention cleanup | Old listings are clutter. It hard-deletes both the class and the submission, which conflicts with the soft-delete row above. |
+| Removing a listing is a soft delete with a 7-day restore, then a hard delete | A misclick or a provider's change of heart can be undone, and we don't keep dead rows forever. `deleted_at` lives on both `submissions` and `classes`, a daily cron purges after 7 days, and the purge is logged in Vercel. Decided and built 2026-11-03 (PR #22). |
+| Providers can't restore a listing an admin removed | An admin removal is usually a takedown (spam, policy). `submissions.deleted_by` records who removed it. |
+| One-year retention cleanup | Old listings are clutter. It hard-deletes the class and the submission with no recovery window. It isn't scheduled, unlike the soft-delete purge. `TODO: decide` whether to schedule it. |
 | Pay (or coupon) before the form | Payment gate comes first, so a submission row only exists once it's paid for. One payment = one listing. |
 | Admins submit for free | Admin submissions skip the payment gate and go straight to `pending` |
 | Craigslist look | Client asked for simple and functional |

@@ -1,6 +1,6 @@
 # Status
 
-Last checked against the repo: 2026-11-01. Last commit on `main`: 2026-05-01 (attendance type merge).
+Last checked against the repo: 2026-11-03. Last commit on `main`: 2026-05-01 (attendance type merge).
 
 ## Done
 - Auth: signup with email verification, login, logout, forgot / reset / change password
@@ -31,6 +31,14 @@ Last checked against the repo: 2026-11-01. Last commit on `main`: 2026-05-01 (at
 - `/classes` speed + feedback (2026-11-03, branch `ui-upgrade`, commits `788cc02`, `b06b697` + caching): the 4 queries now run in parallel (`page.tsx` shell + `components/classes/ClassResults.tsx`), skeleton cards show on every filter/sort/page change via a keyed `<Suspense>` (`ClassGridSkeleton.tsx`, shared with `loading.tsx`), cards select only the 10 columns they render. Measured vs staging, prod build, local: ~0.56s → ~0.32s per filter change; skeleton appears in ~0.2s. The result count line moved from under the heading to just above the grid. Fixed: mobile filter sheet sent `In-Person`/`Virtual` attendance values that don't exist in the DB. Follow-ups: optimistic controls + instant skeleton (`ClassesNavigation.tsx`, feedback ~215ms → ~50ms); state/category dropdown lists cached (`lib/class-filter-options.ts`, tag refreshed by the approve, checkout-edit, and cleanup routes; 5-min backstop), cards now arrive in ~0.35s. Tag refresh not yet exercised end to end (needs an approve on staging).
 - Paywall and coupons hidden behind `PAYWALL_ENABLED` (off unless `"true"`). Free submit path in checkout, gate route refuses, Coupons tab hidden, tests follow the flag. Stripe/coupon code and policies kept. Playwright (chromium, prod build vs staging) 2026-11-02: submit-class + admin 46 passed / 6 skipped, dashboard 27 passed.
 
+- Soft delete with 7-day restore (2026-11-03, branch `admin-delete`, PR #22, **not yet merged**):
+  - Migration 003 adds `submissions.deleted_at` / `deleted_by`, applied to staging and prod
+  - `POST /api/submissions/[id]/remove` and `/restore`, with the rules in `lib/submission-removal.ts`. An owner can't restore an admin removal, and restore after 7 days returns 410.
+  - `/api/cleanup/purge-removed` hard-deletes listings removed more than 7 days ago and logs each one. It's scheduled daily at 09:00 UTC in `vercel.json` and requires `CRON_SECRET`.
+  - Provider UI: trash icon per row, Remove on the detail page, "Recently removed" with Restore, toasts
+  - Admin UI: Removed tab, Actions column (view, remove, restore arrow), restore banner on the detail page, toasts, "All" tab first
+  - tsc, lint (1 known warning) and build pass. Not covered by Playwright yet.
+
 ## Open
 - [ ] Playwright (chromium, prod build, 2026-11-02): all specs pass except signup (staging can't send confirmation email, needs custom SMTP). Test data is already seeded. The `chromium-slow` project hasn't been run yet.
 - [ ] Rotate the staging test passwords (old ones are in git history)
@@ -39,7 +47,9 @@ Last checked against the repo: 2026-11-01. Last commit on `main`: 2026-05-01 (at
 - [ ] Add `PAYWALL_ENABLED=false` to Vercel Production and Preview (the code already treats unset as off; this just makes the setting visible)
 - [ ] Remove the legacy `pending_payment` status (prod has 0 rows as of 2026-11-02; staging has 1 test row). Needs a migration for the status CHECK plus code cleanup in checkout, success page, webhook, badges.
 - [ ] Decide: should editing an approved listing go back to review? Today it updates the live class immediately.
-- [ ] Decide: finish soft delete (nothing sets `deleted_at`; cleanup hard-deletes) or drop the column
+- [ ] Soft delete (PR #22): manual test on staging, then merge and deploy
+- [ ] Playwright specs for remove/restore (test IDs: `remove-listing`, `restore-listing`, `confirm-remove`, `confirm-dialog`)
+- [ ] After deploy: confirm `CRON_SECRET` is set in Vercel Production, the purge cron shows under Settings → Cron Jobs, and the first run looks right in the logs (Vercel crons only run on Production)
 - [ ] No recovery for "paid but didn't submit" beyond revisiting the same `/submit?paid=` URL
 - [ ] Admin coupon UI can't set `expires_at` or `max_uses`
 - [ ] Prod has 6 active coupons, all unlimited and never-expiring, and the "Users can view active coupons" policy lets any logged-in user list them from the browser = free listings for anyone who looks. Moot once the paywall is hidden; until then, consider deactivating unused codes.
@@ -47,7 +57,7 @@ Last checked against the repo: 2026-11-01. Last commit on `main`: 2026-05-01 (at
 - [ ] Confirm Stripe live mode is set in Vercel Production and the live webhook works
 - [ ] Confirm Supabase Auth Site URL / redirects use dcgdental.com
 - [ ] Confirm the email template is live in prod, and whether custom SMTP is set
-- [ ] Schedule the cleanup cron: settle soft delete first (it hard-deletes), then add `vercel.json` with `{"crons":[{"path":"/api/cleanup/expired-submissions","schedule":"0 9 * * *"}]}`, confirm `CRON_SECRET` in Vercel Production, and check the first run in Vercel logs.
+- [ ] Decide whether to schedule `/api/cleanup/expired-submissions` (hard-deletes approved listings a year past `end_date`). `vercel.json` now exists with the purge-removed cron, so this would be a second entry, `{"path":"/api/cleanup/expired-submissions","schedule":"0 9 * * *"}`. It still hard-deletes without a recovery window.
 - [ ] Toast.tsx `useEffect` missing-dependency lint warning (left alone; changing it could alter behavior)
 - [ ] Write the non-technical launch guide for Russell
 - [ ] Co-owner access handoff (GitHub, Vercel, Supabase, Stripe, DNS)

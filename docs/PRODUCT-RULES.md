@@ -43,7 +43,10 @@ Business logic the code can't explain on its own. If a request conflicts with a 
 - Street address is recommended, not required, for on-site and hybrid. City and state are required for every attendance type, remote included.
 - All 50 states plus DC (Washington, D.C.) are allowed. Browse only lists states that have at least one approved class (`app/classes/page.tsx`). The form defaults to `LA`; the client is Louisiana-based, so expect Gulf South listings.
 - Classes whose `end_date` has passed are hidden from browse.
-- Approved submissions older than one year past `end_date` get hard-deleted (submission and class) by `/api/cleanup/expired-submissions`. Nothing runs it on a schedule yet; adding the cron is on hold until the soft-delete decision.
+- Admins can remove any listing. Providers can remove their own, in any status. Removing hides it from dashboards, admin tabs, and public browse right away.
+- A removed listing can be restored for 7 days: providers from "Recently removed" on their dashboard, admins from the Removed tab. A provider can't restore a listing an admin removed. After 7 days a daily cron deletes it permanently.
+- Removed listings can't be approved, rejected, or edited.
+- Approved submissions older than one year past `end_date` get hard-deleted (submission and class) by `/api/cleanup/expired-submissions`. Nothing runs it on a schedule yet (see `DECISIONS.md`).
 
 ## Look and feel
 

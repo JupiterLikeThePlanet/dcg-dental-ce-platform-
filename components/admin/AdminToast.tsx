@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Toast from '@/components/ui/Toast';
+import { RECOVERY_DAYS } from '@/lib/removal-window';
 
 export default function AdminToast() {
   const searchParams = useSearchParams();
@@ -21,6 +22,16 @@ export default function AdminToast() {
       setToast({
         type: 'error',
         message: 'Submission has been rejected.',
+      });
+    } else if (message === 'removed') {
+      setToast({
+        type: 'success',
+        message: `Listing removed. It can be restored for ${RECOVERY_DAYS} days from the Removed tab.`,
+      });
+    } else if (message === 'restored') {
+      setToast({
+        type: 'success',
+        message: 'Listing restored.',
       });
     }
   }, [searchParams]);

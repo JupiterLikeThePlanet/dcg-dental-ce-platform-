@@ -38,6 +38,7 @@ export default async function SubmissionDetailPage({ params }: PageProps) {
     .select('*')
     .eq('id', id)
     .eq('submitted_by', user.id)  // Security: only fetch user's own submissions
+    .is('deleted_at', null)       // Removed listings live in "Recently removed", not here
     .single();
 
   if (error || !submission) {

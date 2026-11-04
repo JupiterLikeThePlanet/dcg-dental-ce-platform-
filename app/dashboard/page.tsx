@@ -1,8 +1,11 @@
+import { Suspense } from 'react'
 import { createServerClient } from '@supabase/ssr'
 import Link from 'next/link'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import DashboardContent from '@/components/dashboard/DashboardContent';
+import DashboardToast from '@/components/dashboard/DashboardToast';
+import { purgeCutoffIso } from '@/lib/removal-window';
 
 export const dynamic = 'force-dynamic';
 
@@ -46,8 +49,19 @@ export default async function DashboardPage() {
     .from('submissions')
     .select('id, title, provider_name, city, state, start_date, end_date, status, created_at, rejection_reason')
     .eq('submitted_by', user.id)
+    .is('deleted_at', null)
     .or(`status.neq.approved,end_date.is.null,end_date.gte.${oneYearAgoStr}`)
     .order('created_at', { ascending: false });
+
+  // Listings this user removed that can still be restored. Ones an admin
+  // removed aren't shown: the user can't restore those.
+  const { data: removedSubmissions } = await supabase
+    .from('submissions')
+    .select('id, title, provider_name, status, deleted_at')
+    .eq('submitted_by', user.id)
+    .eq('deleted_by', user.id)
+    .gte('deleted_at', purgeCutoffIso())
+    .order('deleted_at', { ascending: false });
 
   // Calculate stats
   const stats = {
@@ -59,6 +73,9 @@ export default async function DashboardPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-12">
+      <Suspense fallback={null}>
+        <DashboardToast />
+      </Suspense>
       <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-gray-100 pb-8 mb-8">
@@ -94,7 +111,11 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        <DashboardContent submissions={submissions || []} stats={stats} />
+        <DashboardContent
+          submissions={submissions || []}
+          removedSubmissions={removedSubmissions || []}
+          stats={stats}
+        />
       </div>
     </div>
   )

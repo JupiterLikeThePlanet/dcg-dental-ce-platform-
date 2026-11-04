@@ -4,6 +4,10 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import StatusBadge from './StatusBadge';
 import Spinner from '@/components/ui/Spinner';
+import ConfirmDialog from '@/components/ui/ConfirmDialog';
+import { REMOVE_LISTING_TITLE, removeListingBody } from '@/components/ui/removeListingCopy';
+import { postSubmissionAction } from '@/components/ui/submissionAction';
+import { formatPurgeDate } from '@/lib/removal-window';
 
 interface Submission {
   id: string;
@@ -35,6 +39,8 @@ interface Submission {
   rejection_reason: string | null;
   reviewed_at: string | null;
   created_at: string;
+  deleted_at: string | null;
+  deleted_by: string | null;
   users?: {
     id: string;
     email: string;
@@ -59,6 +65,10 @@ export default function SubmissionDetail({ submission, showPayment }: Submission
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [isRemoving, setIsRemoving] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
+  const [showRemoveModal, setShowRemoveModal] = useState(false);
+  const [removeError, setRemoveError] = useState<string | null>(null);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -136,10 +146,69 @@ export default function SubmissionDetail({ submission, showPayment }: Submission
     }
   };
 
+  const handleRemove = async () => {
+    setIsRemoving(true);
+    setRemoveError(null);
+
+    const result = await postSubmissionAction(submission.id, 'remove');
+    if (!result.ok) {
+      setRemoveError(result.error);
+      setIsRemoving(false);
+      return;
+    }
+
+    setShowRemoveModal(false);
+    router.push('/admin?status=removed&message=removed');
+    router.refresh();
+  };
+
+  const handleRestore = async () => {
+    setIsRestoring(true);
+    setError(null);
+
+    const result = await postSubmissionAction(submission.id, 'restore');
+    if (!result.ok) {
+      setError(result.error);
+      setIsRestoring(false);
+      return;
+    }
+
+    const tab =
+      submission.status === 'pending' ||
+      submission.status === 'approved' ||
+      submission.status === 'rejected'
+        ? submission.status
+        : 'all';
+    router.push(`/admin?status=${tab}&message=restored`);
+    router.refresh();
+  };
+
   const isPending = submission.status === 'pending';
+  const isRemoved = Boolean(submission.deleted_at);
+  const actionsBusy = isApproving || isRejecting || isRemoving;
 
   return (
     <div className="space-y-6">
+      {isRemoved && submission.deleted_at && (
+        <div className="bg-gray-100 border border-gray-200 rounded-sm p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <p className="text-sm text-gray-700">
+              Removed. This listing will be permanently deleted on {formatPurgeDate(submission.deleted_at)}.
+            </p>
+            {error && <p className="text-red-700 text-sm mt-2">{error}</p>}
+          </div>
+          <button
+            type="button"
+            data-testid="restore-listing"
+            onClick={handleRestore}
+            disabled={isRestoring}
+            className="px-4 py-2 rounded-sm font-medium border border-gray-400 text-gray-800 bg-white hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 shrink-0"
+          >
+            {isRestoring ? 'Restoring...' : 'Restore'}
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="bg-white border border-gray-200 rounded-sm p-6">
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
@@ -151,42 +220,62 @@ export default function SubmissionDetail({ submission, showPayment }: Submission
             <p className="text-gray-600">{submission.provider_name}</p>
           </div>
           
-          {isPending && (
-            <div className="flex gap-3">
+          {!isRemoved && (
+            <div className="flex flex-wrap gap-3">
+              {isPending && (
+                <>
+                  <button
+                    onClick={handleApprove}
+                    disabled={actionsBusy}
+                    className={`px-4 py-2 rounded-sm font-medium flex items-center gap-2 ${
+                      actionsBusy
+                        ? 'bg-green-400 cursor-not-allowed'
+                        : 'bg-green-600 hover:bg-green-700'
+                    } text-white`}
+                  >
+                    {isApproving ? (
+                      <>
+                        <Spinner size="sm" />
+                        Approving...
+                      </>
+                    ) : (
+                      '✓ Approve'
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setShowRejectModal(true)}
+                    disabled={actionsBusy}
+                    className={`px-4 py-2 rounded-sm font-medium ${
+                      actionsBusy
+                        ? 'bg-red-400 cursor-not-allowed'
+                        : 'bg-red-600 hover:bg-red-700'
+                    } text-white`}
+                  >
+                    ✕ Reject
+                  </button>
+                </>
+              )}
               <button
-                onClick={handleApprove}
-                disabled={isApproving || isRejecting}
-                className={`px-4 py-2 rounded-sm font-medium flex items-center gap-2 ${
-                  isApproving || isRejecting
-                    ? 'bg-green-400 cursor-not-allowed'
-                    : 'bg-green-600 hover:bg-green-700'
-                } text-white`}
+                type="button"
+                data-testid="remove-listing"
+                onClick={() => {
+                  setRemoveError(null);
+                  setShowRemoveModal(true);
+                }}
+                disabled={actionsBusy}
+                className={`px-4 py-2 rounded-sm font-medium border ${
+                  actionsBusy
+                    ? 'border-red-300 text-red-300 cursor-not-allowed'
+                    : 'border-red-600 text-red-600 hover:bg-red-50'
+                }`}
               >
-                {isApproving ? (
-                  <>
-                    <Spinner size="sm" />
-                    Approving...
-                  </>
-                ) : (
-                  '✓ Approve'
-                )}
-              </button>
-              <button
-                onClick={() => setShowRejectModal(true)}
-                disabled={isApproving || isRejecting}
-                className={`px-4 py-2 rounded-sm font-medium ${
-                  isApproving || isRejecting
-                    ? 'bg-red-400 cursor-not-allowed'
-                    : 'bg-red-600 hover:bg-red-700'
-                } text-white`}
-              >
-                ✕ Reject
+                Remove
               </button>
             </div>
           )}
         </div>
 
-        {error && (
+        {error && !isRemoved && (
           <div className="mt-4 bg-red-50 border border-red-200 rounded-sm p-3">
             <p className="text-red-700 text-sm">{error}</p>
           </div>
@@ -436,6 +525,20 @@ export default function SubmissionDetail({ submission, showPayment }: Submission
             </div>
           </div>
         </div>
+      )}
+
+      {showRemoveModal && (
+        <ConfirmDialog
+          title={REMOVE_LISTING_TITLE}
+          body={removeListingBody('admin', submission.status)}
+          confirmLabel="Remove"
+          busy={isRemoving}
+          error={removeError}
+          onConfirm={handleRemove}
+          onCancel={() => {
+            if (!isRemoving) setShowRemoveModal(false);
+          }}
+        />
       )}
     </div>
   );

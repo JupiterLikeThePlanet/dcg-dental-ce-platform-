@@ -8,7 +8,7 @@ import { isPaywallEnabled } from '@/lib/paywall';
 
 export const dynamic = 'force-dynamic';
 
-type SubmissionStatus = 'all' | 'pending' | 'approved' | 'rejected';
+type SubmissionStatus = 'all' | 'pending' | 'approved' | 'rejected' | 'removed';
 
 interface PageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -62,16 +62,21 @@ export default async function AdminPage({ searchParams }: PageProps) {
       payment_amount,
       coupon_code,
       created_at,
+      deleted_at,
       users:submitted_by (
         email,
         full_name
       )
-    `)
-    .order('created_at', { ascending: false });
+    `);
 
-  // Apply status filter
-  if (statusFilter !== 'all') {
-    query = query.eq('status', statusFilter);
+  // Removed (soft-deleted) rows only show on the Removed tab, newest removal first
+  if (statusFilter === 'removed') {
+    query = query.not('deleted_at', 'is', null).order('deleted_at', { ascending: false });
+  } else {
+    query = query.is('deleted_at', null).order('created_at', { ascending: false });
+    if (statusFilter !== 'all') {
+      query = query.eq('status', statusFilter);
+    }
   }
 
   const { data: submissions, error } = await query;
@@ -80,35 +85,60 @@ export default async function AdminPage({ searchParams }: PageProps) {
     console.error('Error fetching submissions:', error);
   }
 
-  // Get counts for each status
+  // Get counts for each status (live rows only)
   const { count: pendingCount } = await supabase
     .from('submissions')
     .select('*', { count: 'exact', head: true })
+    .is('deleted_at', null)
     .eq('status', 'pending');
 
   const { count: approvedCount } = await supabase
     .from('submissions')
     .select('*', { count: 'exact', head: true })
+    .is('deleted_at', null)
     .eq('status', 'approved');
 
   const { count: rejectedCount } = await supabase
     .from('submissions')
     .select('*', { count: 'exact', head: true })
+    .is('deleted_at', null)
     .eq('status', 'rejected');
 
   const { count: totalCount } = await supabase
     .from('submissions')
-    .select('*', { count: 'exact', head: true });
+    .select('*', { count: 'exact', head: true })
+    .is('deleted_at', null);
+
+  const { count: removedCount } = await supabase
+    .from('submissions')
+    .select('*', { count: 'exact', head: true })
+    .not('deleted_at', 'is', null);
 
   const statusTabs = [
+    { key: 'all', label: 'All', count: totalCount || 0 },
     { key: 'pending', label: 'Pending Review', count: pendingCount || 0 },
     { key: 'approved', label: 'Approved', count: approvedCount || 0 },
     { key: 'rejected', label: 'Rejected', count: rejectedCount || 0 },
-    { key: 'all', label: 'All', count: totalCount || 0 },
+    { key: 'removed', label: 'Removed', count: removedCount || 0 },
   ];
 
   // Stat cards configuration with colors and icons
   const statCards = [
+    { 
+      key: 'all', 
+      label: 'Total Submissions', 
+      count: totalCount || 0,
+      bgColor: 'bg-gray-50 hover:bg-gray-100',
+      borderColor: 'border-gray-200',
+      textColor: 'text-gray-600',
+      numberColor: 'text-gray-700',
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+          <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+          <path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd" />
+        </svg>
+      ),
+    },
     { 
       key: 'pending', 
       label: 'Pending Review', 
@@ -148,21 +178,6 @@ export default async function AdminPage({ searchParams }: PageProps) {
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
           <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-        </svg>
-      ),
-    },
-    { 
-      key: 'all', 
-      label: 'Total Submissions', 
-      count: totalCount || 0,
-      bgColor: 'bg-gray-50 hover:bg-gray-100',
-      borderColor: 'border-gray-200',
-      textColor: 'text-gray-600',
-      numberColor: 'text-gray-700',
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-          <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
-          <path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd" />
         </svg>
       ),
     },
@@ -220,6 +235,8 @@ export default async function AdminPage({ searchParams }: PageProps) {
             ? 'No approved submissions yet.'
             : statusFilter === 'rejected'
             ? 'No rejected submissions.'
+            : statusFilter === 'removed'
+            ? 'Nothing removed in the last 7 days.'
             : 'No submissions found.'
         }
         statusTabs={statusTabs}

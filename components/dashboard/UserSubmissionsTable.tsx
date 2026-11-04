@@ -1,8 +1,15 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import StatusBadge from '@/components/admin/StatusBadge';
+import ConfirmDialog from '@/components/ui/ConfirmDialog';
+import EyeIcon from '@/components/ui/EyeIcon';
+import Tooltip from '@/components/ui/Tooltip';
+import TrashIcon from '@/components/ui/TrashIcon';
+import { REMOVE_LISTING_TITLE, removeListingBody } from '@/components/ui/removeListingCopy';
+import { postSubmissionAction } from '@/components/ui/submissionAction';
 
 interface Submission {
   id: string;
@@ -31,6 +38,9 @@ export default function UserSubmissionsTable({ submissions, activeFilter, onFilt
   const [sortField, setSortField] = useState<SortField>('created_at');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [internalFilter, setInternalFilter] = useState<StatusFilter>('all');
+  const [pendingRemove, setPendingRemove] = useState<Submission | null>(null);
+  const [isRemoving, setIsRemoving] = useState(false);
+  const [removeError, setRemoveError] = useState<string | null>(null);
 
   // Use controlled filter if provided, otherwise internal
   const statusFilter = activeFilter ?? internalFilter;
@@ -96,6 +106,27 @@ export default function UserSubmissionsTable({ submissions, activeFilter, onFilt
 
   const handleRowClick = (id: string) => {
     router.push(`/dashboard/submissions/${id}`);
+  };
+
+  const openRemove = (submission: Submission) => {
+    setRemoveError(null);
+    setPendingRemove(submission);
+  };
+
+  const handleRemove = async () => {
+    if (!pendingRemove) return;
+    setIsRemoving(true);
+    setRemoveError(null);
+    const result = await postSubmissionAction(pendingRemove.id, 'remove');
+    if (!result.ok) {
+      setRemoveError(result.error);
+      setIsRemoving(false);
+      return;
+    }
+    setPendingRemove(null);
+    setIsRemoving(false);
+    router.push('/dashboard?message=removed');
+    router.refresh();
   };
 
   const truncate = (text: string, maxLength: number = 20) => {
@@ -224,10 +255,30 @@ export default function UserSubmissionsTable({ submissions, activeFilter, onFilt
               className="bg-white border border-gray-200 rounded-xl p-4 cursor-pointer hover:border-blue-300 hover:shadow-sm active:bg-gray-50 transition-all"
             >
               <div className="flex justify-between items-start mb-1.5">
-                <p className="font-medium text-gray-900 text-sm leading-snug flex-1 mr-3">
+                <Link
+                  href={`/dashboard/submissions/${submission.id}`}
+                  onClick={(event) => event.stopPropagation()}
+                  className="font-medium text-blue-600 hover:text-blue-800 hover:underline text-sm leading-snug flex-1 mr-3"
+                >
                   {submission.title}
-                </p>
-                <StatusBadge status={submission.status} />
+                </Link>
+                <div className="flex items-center gap-2 shrink-0">
+                  <StatusBadge status={submission.status} />
+                  <Tooltip label="Remove listing">
+                    <button
+                      type="button"
+                      data-testid="remove-listing"
+                      aria-label="Remove listing"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        openRemove(submission);
+                      }}
+                      className="p-1 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-md"
+                    >
+                      <TrashIcon className="h-4 w-4" />
+                    </button>
+                  </Tooltip>
+                </div>
               </div>
               <p className="text-xs text-gray-500 mb-3">{submission.provider_name}</p>
               <div className="flex justify-between items-center text-xs text-gray-400">
@@ -284,7 +335,7 @@ export default function UserSubmissionsTable({ submissions, activeFilter, onFilt
                     <SortIcon field="created_at" />
                   </div>
                 </th>
-                <th className="w-[80px] min-w-[80px] px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="w-[88px] min-w-[88px] px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
@@ -305,12 +356,13 @@ export default function UserSubmissionsTable({ submissions, activeFilter, onFilt
                   >
                     <td className="px-4 py-4">
                       <div className="w-[180px]">
-                        <p 
-                          className="text-sm font-medium text-gray-900 truncate" 
-                          title={submission.title}
+                        <Link
+                          href={`/dashboard/submissions/${submission.id}`}
+                          onClick={(event) => event.stopPropagation()}
+                          className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline truncate block"
                         >
-                          {truncate(submission.title, 22)}
-                        </p>
+                          {submission.title}
+                        </Link>
                         <p 
                           className="text-sm text-gray-500 truncate" 
                           title={submission.provider_name}
@@ -337,13 +389,36 @@ export default function UserSubmissionsTable({ submissions, activeFilter, onFilt
                         {formatDate(submission.created_at)}
                       </p>
                     </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-right">
-                      <span className="text-blue-600 hover:text-blue-800 text-sm font-medium inline-flex items-center gap-1">
-                        View
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                        </svg>
-                      </span>
+                    <td className="px-2 py-4 whitespace-nowrap">
+                      <div className="flex items-center justify-center gap-1">
+                        <Tooltip label="View listing">
+                          <button
+                            type="button"
+                            aria-label="View listing"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleRowClick(submission.id);
+                            }}
+                            className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-md"
+                          >
+                            <EyeIcon />
+                          </button>
+                        </Tooltip>
+                        <Tooltip label="Remove listing">
+                          <button
+                            type="button"
+                            data-testid="remove-listing"
+                            aria-label="Remove listing"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              openRemove(submission);
+                            }}
+                            className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-md"
+                          >
+                            <TrashIcon />
+                          </button>
+                        </Tooltip>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -357,6 +432,22 @@ export default function UserSubmissionsTable({ submissions, activeFilter, onFilt
       <p className="text-sm text-gray-500 text-center">
         Showing {filteredAndSortedSubmissions.length} of {submissions.length} submissions
       </p>
+
+      {pendingRemove && (
+        <ConfirmDialog
+          title={REMOVE_LISTING_TITLE}
+          body={removeListingBody('provider', pendingRemove.status)}
+          confirmLabel="Remove"
+          busy={isRemoving}
+          error={removeError}
+          onConfirm={handleRemove}
+          onCancel={() => {
+            if (isRemoving) return;
+            setPendingRemove(null);
+            setRemoveError(null);
+          }}
+        />
+      )}
     </div>
   );
 }

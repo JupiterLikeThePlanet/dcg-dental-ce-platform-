@@ -57,6 +57,7 @@ export async function POST(request: NextRequest) {
         .select('id, status, submitted_by')
         .eq('id', originalSubmissionId)
         .eq('submitted_by', user.id)
+        .is('deleted_at', null) // a removed listing can't be edited back to life
         .single();
 
       if (fetchError || !originalSubmission) {
